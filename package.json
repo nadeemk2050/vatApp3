@@ -1,0 +1,10 @@
+{
+  "name": "vatapp3",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VAT & Financial Management Web Application",
+  "scripts": {
+    "dev": "npx -y serve public -l 5000",
+    "build": "node -e \"const fs=require('fs'); fs.copyFileSync('public/index.html', 'index.html'); console.log('Build completed: index.html synced.');\""
+  }
+}
