@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import CORP Data into VAT</title> App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+    <div class="max-w-3xl mx-auto px-4 py-10">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-500 text-white flex items-center justify-center text-xl shadow">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">Import Corporate Data</h1>
+                    <p class="text-sm text-slate-500">Old CORP project &rarr; VAT app project</p>
+                </div>
+            </div>
+            <a href="index.html" class="text-sm font-medium text-teal-700 hover:text-teal-900">&larr; Back to VAT App</a>
+        </div>
+
+        <!-- Font Awesome for the icon above -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-5">
+            <h2 class="font-semibold text-lg mb-2">What this does</h2>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                This tool copies the corporate financial data from the old CORP Firebase project
+                (<code class="bg-slate-100 px-1 rounded">corporateapp-25ca4</code>) into this VAT app project
+                (<code class="bg-slate-100 px-1 rounded">vatapp-c80ce</code>) under your currently signed-in VAT app account.
+                It copies: <strong>companies</strong></strong>, <strong>corporate history</strong>,
+</strong>                <strong>finalized reports</strong>, and <strong>all saved</strong></strong> drafts</strong>.
+            </p>
+            <p class="text-xs text-slate-500 mt-3">
+                Existing documents with the same names in the destination will be overwritten.
+                You must know the email and password of the account you used in the old CORP app.
+            </p>
+        </div>
+
+        <div id="dest-status" class="rounded-xl border p-4 mb-5 text-sm bg-amber-50 border-amber-200 text-amber-800">
+            Checking your VAT app sign-in&hellip;
+        </div>
+
+        <form id="migrate-form" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1" for="legacy-email">Old CORP app email</label>
+                <input id="legacy-email" type="email" required autocomplete="username"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                       placeholder="you@example.com">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1" for="legacy-password">Old CORP app password</label>
+                <input id="legacy-password" type="password" required autocomplete="current-password"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                       placeholder="Your old CORP password">
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slate-600">
+                <input id="download-backup" type="checkbox" checked class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                Also download a JSON backup of the old data
+            </label>
+            <button id="start-btn" type="submit"
+                    class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white font-semibold hover:from-teal-500 hover:to-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-download mr-1"></i> Start Import
+            </button>
+        </form>
+
+        <div class="mt-5">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="font-semibold text-slate-700">Progress log</h2>
+                <button type="button" id="clear-log" class="text-xs text-slate-500 hover:text-slate-800">Clear</button>
+            </div>
+            <pre id="log" class="bg-slate-900 text-slate-100 rounded-xl p-4 text-xs leading-relaxed overflow-auto max-h-96 whitespace-pre-wrap">Waiting to start&hellip;</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import {
+            getFirestore, doc, getDoc, setDoc, collection, getDocs
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Destination: the vatApp3 Firebase project (same as the app you are using now).
+        const DEST_CONFIG = {
+            apiKey: "AIzaSyDYcZaB5QheUBRHjfXXKQpcflikamoH_Sc",
+            authDomain: "vatapp-c80ce.firebaseapp.com",
+            projectId: "vatapp-c80ce",
+            storageBucket: "vatapp-c80ce.firebasestorage.app",
+            messagingSenderId: "853364981272",
+            appId: "1:853364981272:web:72989c32f7e1db4c378d6d",
+            measurementId: "G-4XYH23RHSB"
+        };
+
+        // Source: the original CORP Firebase project. This is only used to READ the old data.
+        const LEGACY_CONFIG = {
+            apiKey: "AIzaSyDSPXIidrhF3-Ea8i2vEcfU5NuaWV2vh3M",
+            authDomain: "corporateapp-25ca4.firebaseapp.com",
+            projectId: "corporateapp-25ca4",
+            storageBucket: "corporateapp-25ca4.firebasestorage.app",
+            messagingSenderId: "1082853414036",
+            appId: "1:1082853414036:web:ee8bc99036bdbfe8035081",
+            measurementId: "G-PPKRVNEDHW"
+        };
+
+        const APP_DATA_DOCS = ['companies', 'corporate_history', 'finalized_corps'];
+
+        const logEl = document.getElementById('log');
+        const destStatus = document.getElementById('dest-status');
+        const form = document.getElementById('migrate-form');
+        const startBtn = document.getElementById('start-btn');
+
+        let destUser = null;
+
+        const log = (msg) => {
+            const time = new Date().toLocaleTimeString();
+            if (logEl.textContent.trim() === 'Waiting to start…') logEl.textContent = '';
+            logEl.textContent += `[${time}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        };
+
+        // --- Destination app / auth ---
+        const destApp = initializeApp(DEST_CONFIG);
+        const destAuth = getAuth(destApp);
+        const destDb = getFirestore(destApp);
+
+        onAuthStateChanged(destAuth, (user) => {
+            destUser = user || null;
+            if (user) {
+                destStatus.className = 'rounded-xl border p-4 mb-5 text-sm bg-emerald-50 border-emerald-200 text-emerald-800';
+                destStatus.innerHTML = `&#10003; Signed in to the VAT app as <strong>${user.email || user.uid}</strong>. Data will be imported under this account.`;
+                startBtn.disabled = false;
+            } else {
+                destStatus.className = 'rounded-xl border p-4 mb-5 text-sm bg-rose-50 border-rose-200 text-rose-800';
+                destStatus.innerHTML = 'You are not signed in to the VAT app. Please open the VAT app, sign in, then reload this page.';
+                startBtn.disabled = true;
+            }
+        });
+
+        const downloadJson = (obj) => {
+            const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `corp-export-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!destUser) {
+                log('ERROR: Not signed in to the VAT app.');
+                return;
+            }
+
+            const email = document.getElementById('legacy-email').value.trim();
+            const password = document.getElementById('legacy-password').value;
+            const wantBackup = document.getElementById('download-backup').checked;
+
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Working…';
+            logEl.textContent = '';
+            log('Starting import…');
+            log(`Destination user: ${destUser.email || destUser.uid} (${destUser.uid})`);
+
+            let legacyApp = null;
+            try {
+                legacyApp = initializeApp(LEGACY_CONFIG, 'legacy-corp-reader');
+                const legacyAuth = getAuth(legacyApp);
+                const legacyDb = getFirestore(legacyApp);
+
+                log('Signing in to the old CORP project…');
+                const cred = await signInWithEmailAndPassword(legacyAuth, email, password);
+                const legacyUid = cred.user.uid;
+                log(`Signed in to old CORP as ${cred.user.email || legacyUid} (${legacyUid})`);
+
+                const exportPayload = { app_data: {}, financial_drafts: {} };
+
+                // 1) app_data docs
+                for (const name of APP_DATA_DOCS) {
+                    log(`Reading app_data/${name}…`);
+                    const snap = await getDoc(doc(legacyDb, `users/${legacyUid}/app_data`, name));
+                    if (!snap.exists()) {
+                        log(`  - app_data/${name}: not found (skipped)`);
+                        continue;
+                    }
+                    exportPayload.app_data[name] = snap.data();
+                    log(`  - app_data/${name}: read OK`);
+                }
+
+                // 2) financial_drafts collection
+                log('Reading financial_drafts collection…');
+                const draftsSnap = await getDocs(collection(legacyDb, `users/${legacyUid}/financial_drafts`));
+                draftsSnap.forEach((d) => { exportPayload.financial_drafts[d.id] = d.data(); });
+                log(`  - financial_drafts: ${draftsSnap.size} document(s) read`);
+
+                if (wantBackup) {
+                    downloadJson(exportPayload);
+                    log('JSON backup downloaded.');
+                }
+
+                // 3) Write to destination under the current VAT app user
+                log('Writing data into the VAT app project (vatapp-c80ce)…');
+                let writtenDocs = 0;
+
+                for (const name of Object.keys(exportPayload.app_data)) {
+                    await setDoc(doc(destDb, `users/${destUser.uid}/app_data`, name), exportPayload.app_data[name]);
+                    writtenDocs++;
+                    log(`  - wrote app_data/${name}`);
+                }
+
+                for (const draftId of Object.keys(exportPayload.financial_drafts)) {
+                    await setDoc(doc(destDb, `users/${destUser.uid}/financial_drafts`, draftId), exportPayload.financial_drafts[draftId]);
+                    writtenDocs++;
+                    log(`  - wrote financial_drafts/${draftId}`);
+                }
+
+                log('');
+                log(`DONE. ${writtenDocs} document(s) written into the VAT app project.`);
+                log('Open the Corporate Section in the VAT app to see the data.');
+                // Remove the legacy credentials from the form after a successful run.
+                document.getElementById('legacy-password').value = '';
+            } catch (err) {
+                console.error(err);
+                log('');
+                log(`ERROR: ${err && err.code ? err.code + ' - ' : ''}${err && err.message ? err.message : err}`);
+                if (err && err.code === 'auth/invalid-credential') {
+                    log('Hint: the email/password does not match the old CORP project account.');
+                }
+                if (err && err.code === 'permission-denied') {
+                    log('Hint: Firestore security rules blocked reading the old data or writing the new data.');
+                }
+            } finally {
+                if (legacyApp) {
+                    try { await deleteApp(legacyApp); } catch (_) {}
+                }
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-download mr-1"></i> Start Import';
+            }
+        });
+
+        document.getElementById('clear-log').addEventListener('click', () => {
+            logEl.textContent = '';
+        });
+    </script>
+</body>
+</html>

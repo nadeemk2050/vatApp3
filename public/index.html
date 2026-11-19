@@ -113,6 +113,76 @@
         .sidebar-open {
             transform: translateX(0);
         }
+
+        /* VAT Returns: top horizontal scrollbar */
+        #vat-returns-top-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #f1f5f9;
+        }
+        #vat-returns-top-scroll::-webkit-scrollbar { height: 8px; }
+        #vat-returns-top-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        #vat-returns-top-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9999px; }
+        #vat-returns-table-scroll { scrollbar-gutter: stable; }
+
+        /* VAT Returns: compact full-width table */
+        #vat-returns-table-scroll table { table-layout: fixed; width: 100%; min-width: 1100px; }
+        #vat-returns-table-scroll th,
+        #vat-returns-table-scroll td { padding: 4px 3px !important; font-size: 10px; line-height: 1.2; }
+        #vat-returns-table-scroll thead th { font-size: 9px; }
+        #vat-returns-table-scroll td { white-space: nowrap; }
+        #vat-returns-table-scroll td:nth-child(2) { white-space: normal; }
+        #vat-returns-table-scroll input[type="date"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+        #vat-returns-table-scroll input[type="date"] { -webkit-appearance: none; appearance: none; cursor: pointer; }
+
+        /* Compact Branch Dashboard so all cards fit on one page */
+        #branch-dashboard-filters {
+            padding: 0.5rem 0.75rem !important;
+            margin-bottom: 0.6rem !important;
+        }
+        #branch-dashboard-filters > * + * { margin-left: 0.7rem !important; }
+        #branch-dashboard-filters label { font-size: 0.65rem !important; }
+        #branch-dashboard-filters select { padding: 0.3rem 0.5rem !important; font-size: 0.75rem !important; }
+        #branch-dashboard-filters button { padding: 0.4rem 0.75rem !important; font-size: 0.75rem !important; }
+        #branchDashboard-content > h2 { font-size: 1.25rem !important; margin-bottom: 0.2rem !important; }
+        #branchDashboard-content > #branch-dashboard-period-display { font-size: 0.72rem !important; margin-bottom: 0.5rem !important; }
+        #branch-dashboard-grid { gap: 0.5rem !important; }
+        #branchDashboard-content .dashboard-card {
+            padding: 0.55rem 0.7rem !important;
+            border-radius: 0.4rem !important;
+        }
+        #branchDashboard-content .dashboard-card h3 {
+            font-size: 0.66rem !important;
+            line-height: 1.1 !important;
+        }
+        #branchDashboard-content .dashboard-card > p {
+            font-size: 1.2rem !important;
+            line-height: 1.15 !important;
+            margin-top: 0.1rem !important;
+        }
+        #branchDashboard-content .dashboard-card .text-2xl {
+            font-size: 1.1rem !important;
+            line-height: 1.15 !important;
+            margin-top: 0.1rem !important;
+        }
+        #branchDashboard-content .dashboard-card .text-xs {
+            font-size: 0.62rem !important;
+            line-height: 1.1 !important;
+        }
+
+        /* Sidebar polish */
+        #sidebar .nav-link, #sidebar .submenu-link { border-left: 3px solid transparent; transition: all 0.18s ease; }
+        #sidebar .nav-link:hover, #sidebar .submenu-link:hover { background-color: rgba(255,255,255,0.08); }
+        #sidebar .nav-link.bg-gray-700, #sidebar .submenu-link.bg-gray-700 {
+            background: linear-gradient(90deg, rgba(20,184,166,0.28), rgba(16,185,129,0.06));
+            border-left-color: #2dd4bf;
+            color: #ffffff;
+        }
+        #sidebar .nav-link { padding: 0.62rem 0.75rem !important; }
+        #sidebar .submenu-link { padding: 0.42rem 0.75rem !important; font-size: 0.8rem !important; }
+        #sidebar #vouchers-submenu, #sidebar #ledgers-submenu { padding-left: 1rem !important; }
+        #sidebar .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+        #sidebar .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 9999px; }
+        #sidebar .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -218,14 +288,25 @@
                 - By default (mobile), it's 'fixed' and hidden off-screen ('-translate-x-full').
                 - On medium screens and up ('md:'), it becomes 'relative' and part of the layout ('md:translate-x-0').
             -->
-            <div id="sidebar" class="w-64 bg-gray-800 text-white flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 flex">
-                <div class="px-8 py-6 border-b border-gray-700">
-                    <h2 class="text-2xl font-semibold">My Company</h2>
-                    <span id="current-branch-display" class="text-sm text-gray-400">...</span>
+            <div id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 flex shadow-2xl">
+                <div class="px-5 py-5 border-b border-white/10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white text-lg shadow-lg shadow-emerald-900/30 shrink-0">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h2 class="text-lg font-bold leading-tight truncate">My Company</h2>
+                            <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+                                <i class="fas fa-code-branch text-[9px]"></i>
+                                <span id="current-branch-display" class="truncate">...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <nav class="flex-1 px-4 py-4 overflow-y-auto">
+                <nav class="flex-1 px-3 py-3 overflow-y-auto sidebar-scroll">
                     <a href="#" onclick="showForm('mainDashboard')" class="nav-link flex items-center px-4 py-3 rounded-lg bg-gray-700"><i class="fas fa-chart-pie w-6 text-center"></i><span class="ml-4">Main Dashboard</span></a>
                     <a href="#" onclick="showForm('branchDashboard')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-tachometer-alt w-6 text-center"></i><span class="ml-4">Branch Dashboard</span></a>
+                    <a href="#" onclick="openCorporateSection()" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 transition" title="Open the Corporate / Financial Statement app"><i class="fas fa-building-columns w-6 text-center"></i><span class="ml-4 font-semibold tracking-wide">Corporate Section</span></a>
                     
                     <div class="mt-2">
                         <a href="#" id="vouchers-toggle" onclick="toggleMenu('vouchers')" class="nav-link flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-700"><div class="flex items-center"><i class="fas fa-file-invoice w-6 text-center"></i><span class="ml-4">Vouchers</span></div><i id="vouchers-arrow" class="fas fa-chevron-down text-xs"></i></a>
@@ -263,45 +344,57 @@
                         <span class="ml-4 font-semibold tracking-wide">IMPORT DATA</span>
                     </a>
                 </nav>
+
+                <!-- Sidebar footer: Settings + Profile -->
+                <div class="px-3 py-3 border-t border-white/10">
+                    <button type="button" onclick="toggleManagementMenu()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition">
+                        <span class="flex items-center"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></span>
+                        <i id="settings-chevron" class="fas fa-chevron-up text-[10px] transition-transform"></i>
+                    </button>
+                    <div id="management-menu" class="hidden mt-1 space-y-1 max-h-[50vh] overflow-y-auto">
+                        <a href="#" onclick="showForm('branches')" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i class="fas fa-building w-5 text-center mr-2 text-teal-300"></i>Manage Branches
+                        </a>
+                        <a href="#" onclick="showForm('customers')" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i class="fas fa-users w-5 text-center mr-2 text-teal-300"></i>Manage Customers
+                        </a>
+                        <div class="border-t border-white/10 my-1"></div>
+                        <a href="#" onclick="triggerBackup(false)" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i class="fas fa-database w-5 text-center mr-2 text-indigo-300"></i>Backup (Data Only)
+                        </a>
+                        <a href="#" onclick="triggerBackup(true)" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i class="fas fa-file-archive w-5 text-center mr-2 text-indigo-300"></i>Backup (Data + Media)
+                        </a>
+                        <div class="border-t border-white/10 my-1"></div>
+                        <a href="#" onclick="triggerRestore()" class="flex items-center px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-500/20 hover:text-red-200 transition">
+                            <i class="fas fa-upload w-5 text-center mr-2"></i>Restore from Backup...
+                        </a>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <i class="fas fa-user-circle text-2xl text-emerald-300 shrink-0"></i>
+                        <div class="min-w-0 flex-1">
+                            <div id="user-email" class="text-xs font-medium text-gray-200 truncate">—</div>
+                            <button id="logout-btn" class="text-[11px] text-red-300 hover:text-red-200">Logout</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Main Content -->
             <div class="flex-1 flex flex-col overflow-hidden">
-                <header class="bg-white shadow-md p-4 flex justify-between items-center">
-                    <div class="flex items-center">
-                        <button id="menu-btn" class="md:hidden text-gray-600 hover:text-indigo-600 text-2xl p-1 mr-4">
+                <header class="bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm">
+                    <div class="flex items-center min-w-0">
+                        <button id="menu-btn" class="md:hidden text-gray-600 hover:text-indigo-600 text-2xl p-1 mr-3">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <h1 id="page-title" class="text-2xl font-bold text-gray-800">Main Dashboard</h1>
+                        <h1 id="page-title" class="text-xl md:text-2xl font-bold text-gray-800 truncate">Main Dashboard</h1>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <select id="branch-selector" onchange="selectBranch(this)" class="bg-white border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                    <div class="flex items-center gap-3">
                         <div class="relative">
-                            <button onclick="toggleManagementMenu()" class="text-gray-600 hover:text-indigo-600 text-2xl p-1 rounded-full hover:bg-gray-100 transition duration-150">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                            <div id="management-menu" class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20 hidden">
-                                <a href="#" onclick="showForm('branches')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-building w-6 text-center mr-2"></i>Manage Branches
-                                </a>
-                                <a href="#" onclick="showForm('customers')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-users w-6 text-center mr-2"></i>Manage Customers
-                                </a>
-                                
-                                <div class="border-t my-1"></div>
-                                <a href="#" onclick="triggerBackup(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-database w-6 text-center mr-2"></i>Backup (Data Only)
-                                </a>
-                                <a href="#" onclick="triggerBackup(true)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-file-archive w-6 text-center mr-2"></i>Backup (Data + Media)
-                                </a>
-                                <div class="border-t my-1"></div>
-                                <a href="#" onclick="triggerRestore()" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-100 font-medium">
-                                    <i class="fas fa-upload w-6 text-center mr-2"></i>Restore from Backup...
-                                </a>
-                            </div>
+                            <i class="fas fa-code-branch absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 text-xs pointer-events-none"></i>
+                            <select id="branch-selector" onchange="selectBranch(this)" class="appearance-none bg-white border border-gray-200 rounded-full py-2 pl-8 pr-9 text-sm font-semibold text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 hover:border-indigo-300 transition cursor-pointer min-w-[180px] max-w-[55vw]"></select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
                         </div>
-                        <div class="relative"><div id="user-profile" class="flex items-center space-x-2"><i class="fas fa-user-circle text-2xl text-gray-600"></i><span id="user-email" class="text-sm font-medium text-gray-700"></span></div><button id="logout-btn" class="mt-1 text-xs text-red-600 hover:text-red-800">Logout</button></div>
                     </div>
                 </header>
                 <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
@@ -360,7 +453,7 @@
                         <div id="branchDashboard-content" class="hidden">
                             <h2 class="text-2xl font-bold text-gray-800 mb-2">Branch Dashboard</h2>
                             <p id="branch-dashboard-period-display" class="text-sm text-gray-600 mb-4">Current Period: N/A</p>
-                            <div class="bg-white p-4 rounded-lg shadow-sm mb-6 flex items-center justify-center space-x-4">
+                            <div id="branch-dashboard-filters" class="bg-white p-4 rounded-lg shadow-sm mb-6 flex items-center justify-center space-x-4">
                                 <div>
                                     <label for="filter-type" class="text-sm font-medium text-gray-700">View</label>
                                     <select id="filter-type" onchange="toggleDashboardFilters('')" class="mt-1 block rounded-md border-gray-300 shadow-sm p-2">
@@ -395,7 +488,7 @@
                                     <span>Multiple Quarters Breakup View</span>
                                 </button>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div id="branch-dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <!-- Row 1 -->
                                 <div class="dashboard-card" onclick="navigateToLedgerFromDashboard('sales')"><h3 class="text-gray-500 text-sm font-medium">Total Sales Amount</h3><p id="total-sales-amount" class="text-3xl font-semibold text-gray-800 mt-2">0.00</p></div>
                                 <div class="dashboard-card" onclick="navigateToLedgerFromDashboard('sales')"><h3 class="text-gray-500 text-sm font-medium">Total Sales VAT (5%)</h3><p id="total-sales-vat" class="text-3xl font-semibold text-gray-800 mt-2">0.00</p></div>
@@ -419,6 +512,28 @@
                                 <div class="dashboard-card bg-red-100 border border-red-300" onclick="navigateToLedgerFromDashboard('payment')"><h3 class="text-red-800 text-sm font-medium">Total Payables</h3><p id="total-payables" class="text-3xl font-semibold text-red-800 mt-2">0.00</p></div>
                                 <div class="dashboard-card bg-blue-100 border border-blue-300" onclick="navigateToLedgerFromDashboard('vatRefund')"><h3 class="text-blue-800 text-sm font-medium">Total VAT Refund</h3><p id="total-vat-refund" class="text-3xl font-semibold text-blue-800 mt-2">0.00</p></div>
                                 <div class="dashboard-card" onclick="navigateToLedgerFromDashboard('vatRefund')"><h3 class="text-gray-500 text-sm font-medium">Total Refund Vouchers</h3><p id="total-refund-vouchers" class="text-3xl font-semibold text-gray-800 mt-2">0</p></div>
+
+                                <!-- Row 5: Submissions -->
+                                <div class="dashboard-card bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-300 cursor-pointer lg:col-span-2" onclick="openVatReturnsView()">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="text-teal-800 text-sm font-medium">VAT Returns Submitted</h3>
+                                            <p class="text-2xl font-semibold text-teal-900 mt-2"><i class="fas fa-file-invoice-dollar mr-2"></i>Open</p>
+                                            <p class="text-xs text-teal-700 mt-1">Quarter-wise VAT returns for the selected branch</p>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-teal-600 text-xl"></i>
+                                    </div>
+                                </div>
+                                <div class="dashboard-card bg-gray-100 border border-gray-300 non-clickable opacity-75 lg:col-span-2">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="text-gray-600 text-sm font-medium">Corporate Reports Submitted</h3>
+                                            <p class="text-2xl font-semibold text-gray-700 mt-2"><i class="fas fa-building mr-2"></i>Coming Soon</p>
+                                            <p class="text-xs text-gray-500 mt-1">Available from the Corporate Section integration</p>
+                                        </div>
+                                        <i class="fas fa-lock text-gray-400 text-xl"></i>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Multiple Periods Breakup View Section -->
@@ -528,9 +643,13 @@
                             </div>
                         </div>
                         <div id="branches-content" class="hidden bg-white p-8 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Manage Branches</h2>
-                            <div class="border p-6 rounded-lg">
-                                <h3 id="branch-form-title" class="text-lg font-bold mb-4">Add New Branch</h3>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">Manage Branches</h2>
+                            <p class="text-sm text-gray-600 mb-6">These company/branch names are the official names used in the <strong>Corporate Section</strong>. Add, rename or edit a branch here and it appears there automatically.</p>
+                            <button type="button" onclick="toggleBranchForm()" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 text-left flex justify-between items-center">
+                                <span id="branch-form-title">+ ADD NEW BRANCH</span>
+                                <i id="branch-form-arrow" class="fas fa-chevron-down transition-transform text-sm"></i>
+                            </button>
+                            <div id="branch-form-wrapper" class="hidden border p-6 rounded-lg mt-4">
                                 <form id="branch-form" class="space-y-6">
                                     <input type="hidden" id="branch-id" name="branchId">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -539,7 +658,14 @@
                                         <div><label class="block text-sm font-medium text-gray-700">TRN Starting Date</label><input type="date" name="trnStartingDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
                                         <div><label class="block text-sm font-medium text-gray-700">Licence Number</label><input type="text" name="licenceNumber" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
                                         <div><label class="block text-sm font-medium text-gray-700">Licence Expiry</label><input type="date" name="licenceExpiry" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
+                                        <div><label class="block text-sm font-medium text-gray-700">Corporate No.</label><input type="text" name="corporateNo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Corporate registration no."></div>
+                                        <div><label class="block text-sm font-medium text-gray-700">Corporate First Period Start Date</label><input type="date" name="corporatePeriodStart" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
+                                        <div><label class="block text-sm font-medium text-gray-700">Corporate First Period End Date</label><input type="date" name="corporatePeriodEnd" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
+                                        <div><label class="block text-sm font-medium text-gray-700">VAT Return Filing Period Start (First Quarter)</label><input type="date" name="vatFilingPeriodStart" onchange="updateVatFilingQuartersPreview()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
+                                        <div><label class="block text-sm font-medium text-gray-700">VAT Return Filing Period End (First Quarter)</label><input type="date" name="vatFilingPeriodEnd" onchange="updateVatFilingQuartersPreview()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
                                     </div>
+                                    <p class="text-xs text-gray-500">Only the first VAT quarter is entered here. The remaining quarters are calculated automatically.</p>
+                                    <div id="vat-quarters-preview" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-900"></div>
                                     <div class="flex justify-end"><button id="branch-form-submit" type="submit" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700">Save Branch</button></div>
                                 </form>
                             </div>
@@ -551,7 +677,7 @@
                                 <div id="branch-list-container" class="hidden mt-4 overflow-x-auto">
                                     <table class="w-full text-sm">
                                         <thead>
-                                            <tr><th>Name</th><th>TRN No.</th><th>TRN Start</th><th>Licence No.</th><th>Licence Expiry</th><th>Actions</th></tr>
+                                            <tr><th>Name</th><th>TRN No.</th><th>TRN Start</th><th>Licence No.</th><th>Licence Expiry</th><th>Corporate No.</th><th>Corporate Period</th><th>VAT Q1 Filing</th><th>Actions</th></tr>
                                         </thead>
                                         <tbody id="branch-list-table"></tbody>
                                     </table>
@@ -560,8 +686,11 @@
                         </div>
                         <div id="customers-content" class="hidden bg-white p-8 rounded-lg shadow-md">
                             <h2 class="text-2xl font-bold text-gray-800 mb-6">Manage Customers</h2>
-                            <div class="border p-6 rounded-lg">
-                                <h3 id="customer-form-title" class="text-lg font-bold mb-4">Add New Customer</h3>
+                            <button type="button" onclick="toggleCustomerForm()" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 text-left flex justify-between items-center">
+                                <span id="customer-form-title">+ ADD NEW CUSTOMER</span>
+                                <i id="customer-form-arrow" class="fas fa-chevron-down transition-transform text-sm"></i>
+                            </button>
+                            <div id="customer-form-wrapper" class="hidden border p-6 rounded-lg mt-4">
                                 <form id="customer-form" class="space-y-6">
                                     <input type="hidden" id="customer-id" name="customerId">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2427,6 +2556,105 @@
             </div>
     </div>
 </div>
+
+    <!-- Corporate Section: embeds the full Corporate / Financial Statement app (public/corporate.html) -->
+    <div id="corporate-section-overlay" class="hidden fixed inset-0 z-[100] bg-white flex-col">
+        <div class="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-teal-700 to-emerald-600 text-white shadow-md shrink-0">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-building-columns"></i>
+                <span class="font-semibold text-sm tracking-wide">Corporate Section</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="corp-migrate.html" target="_blank" rel="noopener" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition" title="Copy data from the old CORP Firebase project"><i class="fas fa-download mr-1"></i>Import Old CORP Data</a>
+                <button type="button" onclick="reloadCorporateSection()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition" title="Reload the embedded Corporate app"><i class="fas fa-rotate-right mr-1"></i>Reload</button>
+                <button type="button" onclick="closeCorporateSection()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition"><i class="fas fa-arrow-left mr-1"></i>Back to VAT App</button>
+            </div>
+        </div>
+        <iframe id="corporate-app-frame" class="w-full border-0 bg-white" style="height: calc(100% - 44px);" title="Corporate Section"></iframe>
+    </div>
+
+    <!-- VAT Returns Submitted — full-page bleeding view -->
+    <div id="vat-returns-overlay" class="hidden fixed inset-0 z-[95] bg-slate-100 flex-col">
+        <div class="flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-teal-700 to-emerald-600 text-white shadow-md shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" onclick="closeVatReturnsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                <div class="min-w-0">
+                    <div class="font-semibold text-sm tracking-wide">VAT Returns Submitted</div>
+                    <div class="text-[11px] text-white/80 truncate"><span id="vat-returns-branch-name">—</span> &middot; VAT TRN: <span id="vat-returns-branch-trn">—</span> &middot; Period start: <span id="vat-returns-branch-period">—</span></div>
+                    <div id="vat-returns-notice" class="text-[11px] text-white/90 mt-0.5 leading-tight">Open this view from the Branch Dashboard.</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right leading-tight">
+                    <div class="text-[9px] uppercase tracking-wide text-white/70">Total Net VAT</div>
+                    <div id="vat-returns-balance" class="text-sm font-bold">—</div>
+                </div>
+                <button type="button" onclick="refreshVatReturnsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-0">
+            <div class="bg-white border-0 overflow-hidden">
+                <div id="vat-returns-top-scroll" class="overflow-x-auto bg-slate-50 border-b border-gray-200" style="height: 16px;">
+                    <div id="vat-returns-top-scroll-inner" style="height: 1px; width: 1px;"></div>
+                </div>
+                <div id="vat-returns-table-scroll" class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="text-[11px] uppercase tracking-wide">
+                                <th rowspan="2" style="width: 36px;" class="px-2 py-2 border border-slate-200 bg-slate-100 text-slate-700 text-center">#</th>
+                                <th rowspan="2" onclick="toggleVatPeriodSort()" title="Click to toggle earliest / latest quarter first" style="width: 140px;" class="px-2 py-2 border border-slate-200 bg-slate-100 text-slate-700 text-center cursor-pointer select-none hover:bg-slate-200 transition">
+                                    Period <span id="vat-period-sort-arrow" class="ml-1 text-slate-500 normal-case">▲</span>
+                                </th>
+                                <th colspan="7" class="px-2 py-2 border border-emerald-200 bg-emerald-100 text-emerald-900 text-center">Sales / Output VAT</th>
+                                <th colspan="6" class="px-2 py-2 border border-orange-200 bg-orange-100 text-orange-900 text-center">Purchases / Input VAT</th>
+                                <th rowspan="2" class="px-2 py-2 border border-indigo-200 bg-indigo-100 text-indigo-900 text-center min-w-[120px]">This Period VAT</th>
+                            </tr>
+                            <tr class="text-[10px] uppercase tracking-wide">
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Total Sales</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Sales VAT</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Zero Rated</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Goods Imported</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Import VAT</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Total Values</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right">Total Sales VAT</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Total Purchases</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Purchase Tax</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Reverse Charge Value</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Reverse Charge VAT</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Total Values</th>
+                                <th class="px-2 py-2 border border-orange-200 bg-orange-50 text-orange-800 text-right">Total Purchase VAT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vat-returns-tbody">
+                            <tr><td colspan="16" class="text-center py-6 text-gray-500">Open this view from the Branch Dashboard.</td></tr>
+                        </tbody>
+                        <tfoot id="vat-returns-tfoot" class="bg-slate-100 font-bold text-[11px]"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VAT submission Yes/No modal -->
+        <div id="vat-submission-modal" class="hidden fixed inset-0 z-[110] bg-black/50 items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
+                <h3 class="text-lg font-bold text-gray-800">VAT Return Submission</h3>
+                <p id="vat-submission-period" class="text-xs text-gray-500 mt-1 mb-4">—</p>
+                <div class="flex gap-2 mb-4">
+                    <button type="button" id="vat-submission-yes-btn" onclick="setVatSubmissionChoice(true)" class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white">Yes, Submitted</button>
+                    <button type="button" id="vat-submission-no-btn" onclick="setVatSubmissionChoice(false)" class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">No</button>
+                </div>
+                <div id="vat-submission-date-wrap" class="mb-4">
+                    <label for="vat-submission-date" class="block text-xs font-semibold text-gray-600 mb-1">Submitted date (optional)</label>
+                    <input type="date" id="vat-submission-date" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <p class="text-[11px] text-gray-500 mt-1">Leave blank to use today's date.</p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeVatSubmissionModal()" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">Cancel</button>
+                    <button type="button" onclick="saveVatSubmission()" class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -4295,17 +4523,24 @@
                     window.branchList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     tableBody.innerHTML = '';
                     if (snapshot.empty) {
-                        tableBody.innerHTML = '<tr><td colspan="6">No branches found.</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="9">No branches found.</td></tr>';
                         return;
                     }
                     window.branchList.forEach(branch => {
                         const row = tableBody.insertRow();
+                        const corpPeriod = (branch.corporatePeriodStart || branch.corporatePeriodEnd)
+                            ? `${branch.corporatePeriodStart || '?'} → ${branch.corporatePeriodEnd || '?'}` : '';
+                        const vatQ1 = (branch.vatFilingPeriodStart || branch.vatFilingPeriodEnd)
+                            ? `${branch.vatFilingPeriodStart || '?'} → ${branch.vatFilingPeriodEnd || '?'}` : '';
                         row.innerHTML = `
                             <td>${branch.name || ''}</td>
                             <td>${branch.trnNumber || ''}</td>
                             <td>${branch.trnStartingDate || ''}</td>
                             <td>${branch.licenceNumber || ''}</td>
                             <td>${branch.licenceExpiry || ''}</td>
+                            <td>${branch.corporateNo || ''}</td>
+                            <td>${corpPeriod}</td>
+                            <td>${vatQ1}</td>
                             <td>
                                 <button onclick="editBranch('${branch.id}')" class="text-indigo-600 hover:text-indigo-900 text-sm">Edit</button>
                                 <button onclick="removeBranch('${branch.id}')" class="text-red-600 hover:text-red-900 text-sm ml-2">Remove</button>
@@ -4741,12 +4976,15 @@
                         form.querySelectorAll('input[name="docId"], input[name="mirroredFromHidden"]').forEach(el => el.remove());
 
                         if (formId === 'branch-form') {
-                           document.getElementById('branch-form-title').textContent = "Add New Branch";
+                           document.getElementById('branch-form-title').textContent = "+ ADD NEW BRANCH";
                            document.getElementById('branch-form-submit').textContent = "Save Branch";
+                           if (typeof window.hideBranchForm === 'function') window.hideBranchForm();
+                           if (typeof window.updateVatFilingQuartersPreview === 'function') window.updateVatFilingQuartersPreview();
                         } else if (formId === 'customer-form') {
-                           document.getElementById('customer-form-title').textContent = "Add New Customer";
+                           document.getElementById('customer-form-title').textContent = "+ ADD NEW CUSTOMER";
                            document.getElementById('customer-form-submit').textContent = "Save Customer";
                            document.getElementById('contact-numbers-container').innerHTML = `<input type="text" name="contactNumber" placeholder="Contact Number" class="block w-full rounded-md border-gray-300 shadow-sm p-2">`;
+                           if (typeof window.hideCustomerForm === 'function') window.hideCustomerForm();
                         } else {
                             // FIX: Reset page title after editing a voucher
                             const formPrefix = formId.replace('-form', '');
@@ -5603,7 +5841,11 @@
             };
             
             window.toggleManagementMenu = () => {
-                document.getElementById('management-menu').classList.toggle('hidden');
+                const menu = document.getElementById('management-menu');
+                if (!menu) return;
+                menu.classList.toggle('hidden');
+                const icon = document.getElementById('settings-chevron');
+                if (icon) icon.style.transform = menu.classList.contains('hidden') ? '' : 'rotate(180deg)';
             };
 
             const sidebar = document.getElementById('sidebar');
@@ -5668,6 +5910,23 @@
 
             window.selectedBranch = selectElement.value;
             document.getElementById('current-branch-display').innerText = window.selectedBranch || 'No Branch Selected';
+
+            // Prefill the quarterly report start month/year from the branch's first VAT filing period (if set).
+            try {
+                const selBranch = (window.branchList || []).find(b => b.name === window.selectedBranch);
+                if (selBranch && selBranch.vatFilingPeriodStart) {
+                    const d = new Date(selBranch.vatFilingPeriodStart + 'T00:00:00');
+                    if (!isNaN(d.getTime())) {
+                        const monthSelect = document.getElementById('report-filter-month');
+                        const yearSelect = document.getElementById('report-filter-year');
+                        if (monthSelect) monthSelect.value = String(d.getMonth() + 1).padStart(2, '0');
+                        if (yearSelect) {
+                            const yv = String(d.getFullYear());
+                            if ([...yearSelect.options].some(o => o.value === yv)) yearSelect.value = yv;
+                        }
+                    }
+                }
+            } catch (_) {}
             
             const internalBranchDropdowns = document.querySelectorAll('.internal-branch-dropdown');
             internalBranchDropdowns.forEach(dropdown => {
@@ -8956,7 +9215,11 @@
 
             if (formName !== 'branches' && formName !== 'customers') {
                 const menu = document.getElementById('management-menu');
-                if (menu && !menu.classList.contains('hidden')) menu.classList.add('hidden');
+                if (menu && !menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    const settingsChevron = document.getElementById('settings-chevron');
+                    if (settingsChevron) settingsChevron.style.transform = '';
+                }
             }
 
             // Hide sidebar on mobile after a selection
@@ -8965,8 +9228,644 @@
             }
         };
 
+        // --- Corporate Section (embedded CORP app) ---
+        const CORP_BUILD_VERSION = '2026-11-19-3';
+        let _corpPrevActiveLink = null;
+        window.openCorporateSection = () => {
+            const overlay = document.getElementById('corporate-section-overlay');
+            const frame = document.getElementById('corporate-app-frame');
+            if (!overlay) return;
+            const frameHadSrc = !!(frame && frame.getAttribute('src'));
+            if (frame && !frameHadSrc) frame.setAttribute('src', 'corporate.html?embedded=1');
+            // Auto-reload the embedded app once when the build version changes,
+            // so newly added branches/features are picked up without a manual Reload.
+            try {
+                const storedBuild = localStorage.getItem('vat_corp_build_version');
+                if (frame && frameHadSrc && storedBuild !== CORP_BUILD_VERSION) {
+                    try { frame.contentWindow.location.reload(); } catch (_) { frame.setAttribute('src', 'corporate.html?embedded=1'); }
+                }
+                localStorage.setItem('vat_corp_build_version', CORP_BUILD_VERSION);
+            } catch (_) {}
+            if (frame && !frame.dataset.refreshWired) {
+                frame.dataset.refreshWired = '1';
+                frame.addEventListener('load', () => {
+                    try { frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin); } catch (_) {}
+                });
+            }
+            _corpPrevActiveLink = document.querySelector('.nav-link.bg-gray-700, .submenu-link.bg-gray-700');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            document.querySelectorAll('.nav-link, .submenu-link').forEach(link => link.classList.remove('bg-gray-700'));
+            const link = document.querySelector('[onclick="openCorporateSection()"]');
+            if (link) link.classList.add('bg-gray-700');
+            if (window.innerWidth < 768 && typeof window.hideSidebar === 'function') window.hideSidebar();
+            // Ask the embedded corporate app to refresh branch-sourced companies.
+            try {
+                if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin);
+            } catch (_) {}
+        };
+
+        window.reloadCorporateSection = () => {
+            const frame = document.getElementById('corporate-app-frame');
+            if (!frame) return;
+            try {
+                frame.contentWindow.location.reload();
+            } catch (_) {
+                frame.src = 'corporate.html?embedded=1';
+            }
+        };
+
+        window.closeCorporateSection = () => {
+            const overlay = document.getElementById('corporate-section-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            document.querySelectorAll('.nav-link, .submenu-link').forEach(link => link.classList.remove('bg-gray-700'));
+            if (_corpPrevActiveLink) _corpPrevActiveLink.classList.add('bg-gray-700');
+            _corpPrevActiveLink = null;
+        };
+
+        // The embedded corporate app can ask us to open Manage Branches.
+        window.addEventListener('message', (e) => {
+            if (e.origin !== window.location.origin) return;
+            if (e.data && e.data.type === 'vat-open-branches') {
+                window.closeCorporateSection();
+                window.showForm('branches');
+                if (e.data.addNew) {
+                    const form = document.getElementById('branch-form');
+                    if (form) form.reset();
+                    const idEl = document.getElementById('branch-id');
+                    if (idEl) idEl.value = '';
+                    const titleEl = document.getElementById('branch-form-title');
+                    if (titleEl) titleEl.textContent = '+ ADD NEW BRANCH';
+                    const submitEl = document.getElementById('branch-form-submit');
+                    if (submitEl) submitEl.textContent = 'Save Branch';
+                    if (typeof window.showBranchForm === 'function') window.showBranchForm();
+                    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        });
+
+        // --- VAT Returns Submitted (quarter-wise, per branch) ---
+        const VAT_RETURNS_STATE = {
+            branchName: '',
+            branchId: '',
+            rows: [],
+            sortOrder: 'asc',
+            submissions: {},
+            editingSubmissionIndex: null,
+            submissionChoice: true,
+            vouchers: { sales: [], purchases: [], imports: [], exports: [] }
+        };
+
+        const vatPad2 = (n) => String(n).padStart(2, '0');
+        const vatFmtDate = (d) => `${d.getFullYear()}-${vatPad2(d.getMonth() + 1)}-${vatPad2(d.getDate())}`;
+        const vatParseDate = (value) => {
+            if (!value) return null;
+            if (value instanceof Date) return isNaN(value.getTime()) ? null : new Date(value.getFullYear(), value.getMonth(), value.getDate());
+            const s = String(value);
+            const d = new Date(s + (s.length === 10 ? 'T00:00:00' : ''));
+            return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        };
+        const vatNum = (v) => {
+            const n = parseFloat(v);
+            return isFinite(n) ? n : 0;
+        };
+        const vatFmtMoney = (v) => vatNum(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const vatAddMonths = (date, months) => new Date(date.getFullYear(), date.getMonth() + months, date.getDate());
+        const vatQuarterEnd = (start) => {
+            const end = vatAddMonths(start, 3);
+            end.setDate(end.getDate() - 1);
+            return end;
+        };
+        const VAT_DAY_MS = 86400000;
+        const vatSubmissionDueDate = (quarterEnd) => {
+            // VAT return filing is due on the 28th of the month following the quarter end.
+            return new Date(quarterEnd.getFullYear(), quarterEnd.getMonth() + 1, 28);
+        };
+
+        function vatBuildRows(startDate, today) {
+            const rows = [];
+            if (!startDate) return rows;
+            let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            const guard = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            for (let i = 0; i < 200; i++) {
+                const start = new Date(cursor);
+                const end = vatQuarterEnd(start);
+                rows.push({ start, end, running: guard >= start && guard <= end });
+                if (start > guard) break;
+                cursor = new Date(end);
+                cursor.setDate(cursor.getDate() + 1);
+                if (cursor > guard) break;
+            }
+            return rows;
+        }
+
+        function vatAggregate(start, end) {
+            const inPeriod = (v) => {
+                const d = vatParseDate(v.date);
+                return d && d >= start && d <= end;
+            };
+            const sum = (arr, field) => arr.reduce((acc, v) => acc + (inPeriod(v) ? vatNum(v[field]) : 0), 0);
+            const sales = VAT_RETURNS_STATE.vouchers.sales;
+            const purchases = VAT_RETURNS_STATE.vouchers.purchases;
+            const imports = VAT_RETURNS_STATE.vouchers.imports;
+            const exports = VAT_RETURNS_STATE.vouchers.exports;
+
+            const totalSales = sum(sales, 'totalAmount');
+            const salesVat = sum(sales, 'vat5percent');
+            const zeroRated = sum(exports, 'totalAmount');
+            const goodsImported = sum(imports, 'totalAmount');
+            const importVat = sum(imports, 'vat');
+            const totalValues1 = totalSales + zeroRated + goodsImported;
+            const totalVat1 = salesVat + importVat;
+
+            const totalPurchases = sum(purchases, 'totalAmount');
+            const purchaseTax = sum(purchases, 'vat5percent');
+            const reverseChargeValue = goodsImported;
+            const reverseChargeVat = importVat;
+            const totalValues2 = totalPurchases + reverseChargeValue;
+            const totalVat2 = purchaseTax + reverseChargeVat;
+            const thisPeriodVat = totalVat1 - totalVat2;
+
+            return {
+                totalSales, salesVat, zeroRated, goodsImported, importVat, totalValues1, totalVat1,
+                totalPurchases, purchaseTax, reverseChargeValue, reverseChargeVat, totalValues2, totalVat2,
+                thisPeriodVat
+            };
+        }
+
+        function vatRenderTopBar() {
+            const noticeEl = document.getElementById('vat-returns-notice');
+            const balanceEl = document.getElementById('vat-returns-balance');
+            if (!noticeEl && !balanceEl) return;
+            const rows = VAT_RETURNS_STATE.rows;
+            if (!rows.length) {
+                if (noticeEl) noticeEl.textContent = 'No VAT period start date found. Set the VAT Return Filing Period Start in Manage Branches.';
+                if (balanceEl) balanceEl.textContent = '—';
+                return;
+            }
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const last = rows[rows.length - 1];
+            const status = today < last.start ? 'UPCOMING' : (today <= last.end ? 'RUNNING' : 'COMPLETED');
+            const quarterDaysLeft = status === 'RUNNING' ? Math.max(0, Math.ceil((last.end - today) / VAT_DAY_MS)) : 0;
+            const due = vatSubmissionDueDate(last.end);
+            const dueDays = Math.ceil((due - today) / VAT_DAY_MS);
+            const latestSubKey = vatFmtDate(last.start);
+            const latestSubmission = VAT_RETURNS_STATE.submissions[latestSubKey];
+
+            const parts = [];
+            parts.push(`<span class="font-semibold">${vatFmtDate(last.start)} → ${vatFmtDate(last.end)}</span>`);
+            if (status === 'RUNNING') {
+                parts.push(`<span class="text-amber-200 font-semibold">RUNNING · ${quarterDaysLeft} day(s) remaining</span>`);
+                parts.push(`updated to ${vatFmtDate(today)}`);
+            } else if (status === 'UPCOMING') {
+                parts.push(`<span class="text-blue-200 font-semibold">UPCOMING</span>`);
+            } else {
+                parts.push(`<span class="text-emerald-200 font-semibold">COMPLETED</span>`);
+            }
+
+            if (latestSubmission && latestSubmission.submitted) {
+                parts.push(`<span class="text-emerald-200 font-semibold">Submitted${latestSubmission.submittedDate ? ' on ' + latestSubmission.submittedDate : ''}</span>`);
+            } else if (dueDays < 0) {
+                parts.push(`<span class="text-red-200 font-semibold">Filing due ${vatFmtDate(due)} · Overdue by ${Math.abs(dueDays)} day(s)</span>`);
+            } else if (dueDays === 0) {
+                parts.push(`<span class="text-amber-200 font-semibold">Filing due today (${vatFmtDate(due)})</span>`);
+            } else {
+                parts.push(`<span class="${dueDays <= 7 ? 'text-amber-200 font-semibold' : ''}">Filing due ${vatFmtDate(due)} · ${dueDays} day(s) left to submit</span>`);
+            }
+
+            if (noticeEl) noticeEl.innerHTML = parts.join(' · ');
+            if (balanceEl) {
+                // Grand total net VAT across all periods (matches the footer TOTALS row).
+                const totalNetVat = rows.reduce((acc, r) => acc + vatAggregate(r.start, r.end).thisPeriodVat, 0);
+                balanceEl.textContent = vatFmtMoney(totalNetVat);
+                balanceEl.className = 'text-sm font-bold ' + (totalNetVat < 0 ? 'text-red-200' : 'text-white');
+            }
+        }
+
+        function vatRenderTable() {
+            const tbody = document.getElementById('vat-returns-tbody');
+            const tfoot = document.getElementById('vat-returns-tfoot');
+            if (!tbody) return;
+            const rows = VAT_RETURNS_STATE.rows;
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="16" class="text-center py-6 text-gray-500">No VAT return periods available.</td></tr>';
+                if (tfoot) tfoot.innerHTML = '';
+                vatRenderTopBar();
+                return;
+            }
+
+            const arrow = document.getElementById('vat-period-sort-arrow');
+            if (arrow) arrow.textContent = VAT_RETURNS_STATE.sortOrder === 'asc' ? '▲' : '▼';
+
+            const totals = {
+                totalSales: 0, salesVat: 0, zeroRated: 0, goodsImported: 0, importVat: 0, totalValues1: 0, totalVat1: 0,
+                totalPurchases: 0, purchaseTax: 0, reverseChargeValue: 0, reverseChargeVat: 0, totalValues2: 0, totalVat2: 0,
+                thisPeriodVat: 0
+            };
+
+            const indexedRows = rows.map((row, idx) => ({ row, idx }));
+            indexedRows.sort((a, b) => VAT_RETURNS_STATE.sortOrder === 'asc'
+                ? (a.row.start - b.row.start)
+                : (b.row.start - a.row.start));
+
+            const now = new Date();
+            const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            tbody.innerHTML = indexedRows.map(({ row, idx }, displayIndex) => {
+                const a = vatAggregate(row.start, row.end);
+                Object.keys(totals).forEach(k => { totals[k] += a[k]; });
+                const runningBadge = row.running ? '<div class="mt-1"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Running</span></div>' : '';
+                const subKey = vatFmtDate(row.start);
+                const submission = VAT_RETURNS_STATE.submissions[subKey];
+                let dueInfo;
+                if (submission && submission.submitted) {
+                    dueInfo = `<button type="button" onclick="openVatSubmissionModal(${idx})" class="mt-1 text-[9px] font-semibold text-emerald-700 hover:underline text-left bg-transparent border-0 p-0" title="Click to edit submission"><i class="fas fa-check-circle mr-0.5"></i>Submitted${submission.submittedDate ? ' on ' + submission.submittedDate : ''}</button>`;
+                } else {
+                    const rowDue = vatSubmissionDueDate(row.end);
+                    const rowDueDays = Math.ceil((rowDue - todayMid) / VAT_DAY_MS);
+                    const dueLabel = rowDueDays < 0
+                        ? `<span class="text-red-600 font-semibold">Due ${vatFmtDate(rowDue)} · Overdue ${Math.abs(rowDueDays)}d</span>`
+                        : rowDueDays === 0
+                            ? `<span class="text-amber-700 font-semibold">Due today (${vatFmtDate(rowDue)})</span>`
+                            : `<span class="${rowDueDays <= 7 ? 'text-amber-700 font-semibold' : 'text-gray-500'}">Due ${vatFmtDate(rowDue)} · ${rowDueDays}d left</span>`;
+                    dueInfo = `<button type="button" onclick="openVatSubmissionModal(${idx})" class="mt-1 text-[9px] hover:underline text-left bg-transparent border-0 p-0" title="Click to mark this quarter submitted">${dueLabel}</button>`;
+                }
+                return `
+                    <tr class="${row.running ? 'bg-amber-50/40' : 'bg-white'}">
+                        <td class="px-2 py-2 border border-slate-200 text-center font-semibold text-slate-700">${displayIndex + 1}</td>
+                        <td class="px-2 py-2 border border-slate-200">
+                            <div class="flex flex-col gap-1">
+                                <input type="date" value="${vatFmtDate(row.start)}" onchange="onVatPeriodChange(${idx}, 'start', this.value)" class="w-full rounded border border-slate-300 px-1.5 py-1 text-[11px]">
+                                <input type="date" value="${vatFmtDate(row.end)}" onchange="onVatPeriodChange(${idx}, 'end', this.value)" class="w-full rounded border border-slate-300 px-1.5 py-1 text-[11px]">
+                                ${runningBadge}
+                                ${dueInfo}
+                            </div>
+                        </td>
+                        <td class="px-2 py-2 border border-emerald-100 bg-emerald-50/40 text-right">${vatFmtMoney(a.totalSales)}</td>
+                        <td class="px-2 py-2 border border-emerald-100 bg-emerald-50/40 text-right">${vatFmtMoney(a.salesVat)}</td>
+                        <td class="px-2 py-2 border border-emerald-100 bg-emerald-50/40 text-right">${vatFmtMoney(a.zeroRated)}</td>
+                        <td class="px-2 py-2 border border-emerald-100 bg-emerald-50/40 text-right">${vatFmtMoney(a.goodsImported)}</td>
+                        <td class="px-2 py-2 border border-emerald-100 bg-emerald-50/40 text-right">${vatFmtMoney(a.importVat)}</td>
+                        <td class="px-2 py-2 border border-emerald-200 bg-emerald-100/50 text-right font-semibold">${vatFmtMoney(a.totalValues1)}</td>
+                        <td class="px-2 py-2 border border-emerald-200 bg-emerald-100/50 text-right font-semibold">${vatFmtMoney(a.totalVat1)}</td>
+                        <td class="px-2 py-2 border border-orange-100 bg-orange-50/40 text-right">${vatFmtMoney(a.totalPurchases)}</td>
+                        <td class="px-2 py-2 border border-orange-100 bg-orange-50/40 text-right">${vatFmtMoney(a.purchaseTax)}</td>
+                        <td class="px-2 py-2 border border-orange-100 bg-orange-50/40 text-right">${vatFmtMoney(a.reverseChargeValue)}</td>
+                        <td class="px-2 py-2 border border-orange-100 bg-orange-50/40 text-right">${vatFmtMoney(a.reverseChargeVat)}</td>
+                        <td class="px-2 py-2 border border-orange-200 bg-orange-100/50 text-right font-semibold">${vatFmtMoney(a.totalValues2)}</td>
+                        <td class="px-2 py-2 border border-orange-200 bg-orange-100/50 text-right font-semibold">${vatFmtMoney(a.totalVat2)}</td>
+                        <td class="px-2 py-2 border border-indigo-200 bg-indigo-50 text-right font-bold text-indigo-900">${vatFmtMoney(a.thisPeriodVat)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (tfoot) {
+                tfoot.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="px-2 py-2 border border-slate-200 text-right">TOTALS</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalSales)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.salesVat)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.zeroRated)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.goodsImported)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.importVat)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalValues1)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalVat1)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalPurchases)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.purchaseTax)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.reverseChargeValue)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.reverseChargeVat)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalValues2)}</td>
+                        <td class="px-2 py-2 border border-slate-200 text-right">${vatFmtMoney(totals.totalVat2)}</td>
+                        <td class="px-2 py-2 border border-indigo-200 bg-indigo-100 text-right text-indigo-900">${vatFmtMoney(totals.thisPeriodVat)}</td>
+                    </tr>
+                `;
+            }
+            vatRenderTopBar();
+            requestAnimationFrame(vatSyncTopScrollbar);
+        }
+
+        window.toggleVatPeriodSort = () => {
+            VAT_RETURNS_STATE.sortOrder = VAT_RETURNS_STATE.sortOrder === 'asc' ? 'desc' : 'asc';
+            vatRenderTable();
+        };
+
+        window.onVatPeriodChange = (index, field, value) => {
+            const rows = VAT_RETURNS_STATE.rows;
+            if (!rows[index]) return;
+            const parsed = vatParseDate(value);
+            if (!parsed) return;
+
+            if (field === 'start') {
+                rows[index].start = parsed;
+                rows[index].end = vatQuarterEnd(parsed);
+            } else {
+                rows[index].end = parsed;
+                if (rows[index].end < rows[index].start) rows[index].start = new Date(rows[index].end);
+            }
+
+            // Re-chain all subsequent periods in 3-month steps.
+            for (let j = index + 1; j < rows.length; j++) {
+                const nextStart = new Date(rows[j - 1].end);
+                nextStart.setDate(nextStart.getDate() + 1);
+                rows[j].start = nextStart;
+                rows[j].end = vatQuarterEnd(nextStart);
+            }
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            rows.forEach(r => { r.running = today >= r.start && today <= r.end; });
+
+            vatRenderTable();
+        };
+
+        async function vatLoadReturnsForBranch() {
+            const tbody = document.getElementById('vat-returns-tbody');
+            const branchName = window.selectedBranch;
+            if (!tbody) return;
+            if (!branchName) {
+                tbody.innerHTML = '<tr><td colspan="16" class="text-center py-6 text-red-500">Please select a branch first.</td></tr>';
+                const noticeEl = document.getElementById('vat-returns-notice');
+                if (noticeEl) noticeEl.textContent = 'Please select a branch from the Branch Dashboard first.';
+                const balanceEl = document.getElementById('vat-returns-balance');
+                if (balanceEl) balanceEl.textContent = '—';
+                return;
+            }
+            const branch = (window.branchList || []).find(b => b.name === branchName) || {};
+            VAT_RETURNS_STATE.branchName = branchName;
+            VAT_RETURNS_STATE.branchId = branch.id || '';
+            document.getElementById('vat-returns-branch-name').textContent = branchName;
+            document.getElementById('vat-returns-branch-trn').textContent = branch.trnNumber || '—';
+            document.getElementById('vat-returns-branch-period').textContent = branch.vatFilingPeriodStart || branch.trnStartingDate || '—';
+            const noticeEl = document.getElementById('vat-returns-notice');
+            if (noticeEl) noticeEl.textContent = 'Loading VAT return data…';
+            const balanceEl = document.getElementById('vat-returns-balance');
+            if (balanceEl) balanceEl.textContent = '—';
+
+            // Load submission status for this branch.
+            try {
+                VAT_RETURNS_STATE.submissions = {};
+                if (branch.id && window.currentUserId) {
+                    const subSnap = await getDoc(doc(db, `users/${window.currentUserId}/vatReturnSubmissions`, branch.id));
+                    if (subSnap.exists()) VAT_RETURNS_STATE.submissions = subSnap.data().submissions || {};
+                }
+            } catch (err) {
+                console.error('Error loading VAT submissions:', err);
+            }
+
+            tbody.innerHTML = '<tr><td colspan="16" class="text-center py-6 text-indigo-500">Loading VAT return data…</td></tr>';
+
+            try {
+                const fetchCol = async (col) => {
+                    const snap = await getDocs(query(collection(db, path(col)), where('branch', '==', branchName)));
+                    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                };
+                const [sales, purchases, imports, exports] = await Promise.all([
+                    fetchCol('salesVouchers'),
+                    fetchCol('purchaseVouchers'),
+                    fetchCol('importVouchers'),
+                    fetchCol('exportVouchers')
+                ]);
+                VAT_RETURNS_STATE.vouchers = { sales, purchases, imports, exports };
+            } catch (error) {
+                console.error('Error loading VAT return data:', error);
+                tbody.innerHTML = '<tr><td colspan="16" class="text-center py-6 text-red-500">Could not load voucher data. Check Firestore rules.</td></tr>';
+                return;
+            }
+
+            let startDate = vatParseDate(branch.vatFilingPeriodStart)
+                || vatParseDate(branch.trnStartingDate)
+                || (branch.createdAt && typeof branch.createdAt.toDate === 'function' ? vatParseDate(branch.createdAt.toDate()) : null);
+            if (!startDate) {
+                const all = [].concat(
+                    VAT_RETURNS_STATE.vouchers.sales,
+                    VAT_RETURNS_STATE.vouchers.purchases,
+                    VAT_RETURNS_STATE.vouchers.imports,
+                    VAT_RETURNS_STATE.vouchers.exports
+                );
+                const dates = all.map(v => vatParseDate(v.date)).filter(Boolean).sort((a, b) => a - b);
+                startDate = dates[0] || new Date();
+            }
+
+            VAT_RETURNS_STATE.rows = vatBuildRows(startDate, new Date());
+            vatRenderTable();
+        }
+
+        async function persistVatSubmissions() {
+            if (!window.currentUserId || !VAT_RETURNS_STATE.branchId) return;
+            const ref = doc(db, `users/${window.currentUserId}/vatReturnSubmissions`, VAT_RETURNS_STATE.branchId);
+            await setDoc(ref, {
+                branchName: VAT_RETURNS_STATE.branchName,
+                submissions: VAT_RETURNS_STATE.submissions,
+                updatedAt: Timestamp.now()
+            });
+        }
+
+        window.openVatSubmissionModal = (idx) => {
+            const row = VAT_RETURNS_STATE.rows[idx];
+            if (!row) return;
+            VAT_RETURNS_STATE.editingSubmissionIndex = idx;
+            const key = vatFmtDate(row.start);
+            const existing = VAT_RETURNS_STATE.submissions[key];
+            const modal = document.getElementById('vat-submission-modal');
+            const periodEl = document.getElementById('vat-submission-period');
+            if (periodEl) periodEl.textContent = `${vatFmtDate(row.start)} → ${vatFmtDate(row.end)}`;
+            const dateInput = document.getElementById('vat-submission-date');
+            if (dateInput) dateInput.value = (existing && existing.submittedDate) || '';
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            window.setVatSubmissionChoice(existing ? !!existing.submitted : true);
+        };
+
+        window.setVatSubmissionChoice = (isYes) => {
+            VAT_RETURNS_STATE.submissionChoice = !!isYes;
+            const yesBtn = document.getElementById('vat-submission-yes-btn');
+            const noBtn = document.getElementById('vat-submission-no-btn');
+            const dateWrap = document.getElementById('vat-submission-date-wrap');
+            if (yesBtn) {
+                yesBtn.className = isYes
+                    ? 'flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white'
+                    : 'flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200';
+            }
+            if (noBtn) {
+                noBtn.className = !isYes
+                    ? 'flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white'
+                    : 'flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200';
+            }
+            if (dateWrap) dateWrap.classList.toggle('hidden', !isYes);
+        };
+
+        window.closeVatSubmissionModal = () => {
+            const modal = document.getElementById('vat-submission-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            VAT_RETURNS_STATE.editingSubmissionIndex = null;
+        };
+
+        window.saveVatSubmission = async () => {
+            const idx = VAT_RETURNS_STATE.editingSubmissionIndex;
+            const row = VAT_RETURNS_STATE.rows[idx];
+            if (!row) return;
+            const key = vatFmtDate(row.start);
+            if (VAT_RETURNS_STATE.submissionChoice) {
+                const dateInput = document.getElementById('vat-submission-date');
+                const dateVal = (dateInput && dateInput.value) ? dateInput.value : vatFmtDate(new Date());
+                VAT_RETURNS_STATE.submissions[key] = { submitted: true, submittedDate: dateVal };
+            } else {
+                delete VAT_RETURNS_STATE.submissions[key];
+            }
+            try {
+                await persistVatSubmissions();
+            } catch (e) {
+                console.error('Error saving VAT submission:', e);
+                alert('Could not save the submission status. Please check your connection/Firestore rules.');
+            }
+            window.closeVatSubmissionModal();
+            vatRenderTable();
+        };
+
+        window.openVatReturnsView = () => {
+            const overlay = document.getElementById('vat-returns-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            vatLoadReturnsForBranch();
+        };
+
+        window.closeVatReturnsView = () => {
+            const overlay = document.getElementById('vat-returns-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+        };
+
+        window.refreshVatReturnsView = () => {
+            vatLoadReturnsForBranch();
+        };
+
+        // Keep the top horizontal scrollbar in sync with the table's horizontal scroll.
+        function vatSyncTopScrollbar() {
+            const top = document.getElementById('vat-returns-top-scroll');
+            const inner = document.getElementById('vat-returns-top-scroll-inner');
+            const tableScroll = document.getElementById('vat-returns-table-scroll');
+            if (!top || !inner || !tableScroll) return;
+            inner.style.width = tableScroll.scrollWidth + 'px';
+            top.scrollLeft = tableScroll.scrollLeft;
+        }
+
+        (function wireVatReturnScrollbars() {
+            const top = document.getElementById('vat-returns-top-scroll');
+            const tableScroll = document.getElementById('vat-returns-table-scroll');
+            if (!top || !tableScroll) return;
+            top.addEventListener('scroll', () => {
+                if (tableScroll.scrollLeft !== top.scrollLeft) tableScroll.scrollLeft = top.scrollLeft;
+            });
+            tableScroll.addEventListener('scroll', () => {
+                if (top.scrollLeft !== tableScroll.scrollLeft) top.scrollLeft = tableScroll.scrollLeft;
+            });
+            tableScroll.addEventListener('click', (e) => {
+                const input = e.target.closest('input[type="date"]');
+                if (input && typeof input.showPicker === 'function') {
+                    try { input.showPicker(); } catch (_) {}
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (typeof vatSyncTopScrollbar === 'function') vatSyncTopScrollbar();
+            });
+        })();
+
         window.toggleBranchList = () => {
             document.getElementById('branch-list-container').classList.toggle('hidden');
+        };
+
+        window.toggleBranchForm = () => {
+            const wrapper = document.getElementById('branch-form-wrapper');
+            const arrow = document.getElementById('branch-form-arrow');
+            if (!wrapper) return;
+            wrapper.classList.toggle('hidden');
+            if (arrow) arrow.style.transform = wrapper.classList.contains('hidden') ? '' : 'rotate(180deg)';
+        };
+
+        window.showBranchForm = () => {
+            const wrapper = document.getElementById('branch-form-wrapper');
+            const arrow = document.getElementById('branch-form-arrow');
+            if (wrapper) wrapper.classList.remove('hidden');
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        };
+
+        window.hideBranchForm = () => {
+            const wrapper = document.getElementById('branch-form-wrapper');
+            const arrow = document.getElementById('branch-form-arrow');
+            if (wrapper) wrapper.classList.add('hidden');
+            if (arrow) arrow.style.transform = '';
+        };
+
+        window.toggleCustomerForm = () => {
+            const wrapper = document.getElementById('customer-form-wrapper');
+            const arrow = document.getElementById('customer-form-arrow');
+            if (!wrapper) return;
+            wrapper.classList.toggle('hidden');
+            if (arrow) arrow.style.transform = wrapper.classList.contains('hidden') ? '' : 'rotate(180deg)';
+        };
+
+        window.showCustomerForm = () => {
+            const wrapper = document.getElementById('customer-form-wrapper');
+            const arrow = document.getElementById('customer-form-arrow');
+            if (wrapper) wrapper.classList.remove('hidden');
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        };
+
+        window.hideCustomerForm = () => {
+            const wrapper = document.getElementById('customer-form-wrapper');
+            const arrow = document.getElementById('customer-form-arrow');
+            if (wrapper) wrapper.classList.add('hidden');
+            if (arrow) arrow.style.transform = '';
+        };
+
+        window.updateVatFilingQuartersPreview = () => {
+            const startEl = document.querySelector('#branch-form [name="vatFilingPeriodStart"]');
+            const endEl = document.querySelector('#branch-form [name="vatFilingPeriodEnd"]');
+            const box = document.getElementById('vat-quarters-preview');
+            if (!startEl || !endEl || !box) return;
+            const startVal = startEl.value;
+            if (!startVal) {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+                return;
+            }
+            const start = new Date(startVal + 'T00:00:00');
+            if (isNaN(start.getTime())) {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+                return;
+            }
+            const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const quarters = [];
+            let qStart = new Date(start);
+            for (let i = 0; i < 4; i++) {
+                const qEnd = new Date(qStart);
+                qEnd.setMonth(qEnd.getMonth() + 3);
+                qEnd.setDate(qEnd.getDate() - 1);
+                quarters.push({ label: `Q${i + 1}`, start: fmt(qStart), end: fmt(qEnd) });
+                qStart = new Date(qEnd);
+                qStart.setDate(qStart.getDate() + 1);
+            }
+            const enteredEnd = endEl.value;
+            const q1Matches = !enteredEnd || enteredEnd === quarters[0].end;
+            box.innerHTML = `
+                <div class="font-semibold mb-1">Calculated VAT return quarters</div>
+                ${quarters.map(q => `<div>${q.label}: ${q.start} → ${q.end}</div>`).join('')}
+                ${q1Matches ? '' : `<div class="mt-1 text-amber-700">Note: entered Q1 end (${enteredEnd}) differs from the calculated Q1 end (${quarters[0].end}).</div>`}
+            `;
+            box.classList.remove('hidden');
         };
 
         window.toggleCustomerList = () => {
@@ -8981,9 +9880,16 @@
             document.querySelector('#branch-form [name="trnStartingDate"]').value = branch.trnStartingDate || '';
             document.querySelector('#branch-form [name="licenceNumber"]').value = branch.licenceNumber || '';
             document.querySelector('#branch-form [name="licenceExpiry"]').value = branch.licenceExpiry || '';
+            document.querySelector('#branch-form [name="corporateNo"]').value = branch.corporateNo || '';
+            document.querySelector('#branch-form [name="corporatePeriodStart"]').value = branch.corporatePeriodStart || '';
+            document.querySelector('#branch-form [name="corporatePeriodEnd"]').value = branch.corporatePeriodEnd || '';
+            document.querySelector('#branch-form [name="vatFilingPeriodStart"]').value = branch.vatFilingPeriodStart || '';
+            document.querySelector('#branch-form [name="vatFilingPeriodEnd"]').value = branch.vatFilingPeriodEnd || '';
             document.getElementById('branch-id').value = id;
             document.getElementById('branch-form-title').textContent = "Update Branch";
             document.getElementById('branch-form-submit').textContent = "Update Branch";
+            window.showBranchForm();
+            window.updateVatFilingQuartersPreview();
             window.scrollTo(0, 0);
         };
 
@@ -9015,6 +9921,7 @@
             document.getElementById('customer-id').value = id;
             document.getElementById('customer-form-title').textContent = "Update Customer";
             document.getElementById('customer-form-submit').textContent = "Update Customer";
+            window.showCustomerForm();
             window.scrollTo(0, 0);
         };
         
