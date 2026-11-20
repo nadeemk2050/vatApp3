@@ -306,10 +306,10 @@
                 <nav class="flex-1 px-3 py-3 overflow-y-auto sidebar-scroll">
                     <a href="#" onclick="showForm('mainDashboard')" class="nav-link flex items-center px-4 py-3 rounded-lg bg-gray-700"><i class="fas fa-chart-pie w-6 text-center"></i><span class="ml-4">Main Dashboard</span></a>
                     <a href="#" onclick="showForm('branchDashboard')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-tachometer-alt w-6 text-center"></i><span class="ml-4">Branch Dashboard</span></a>
-                    <a href="#" onclick="openCorporateSection()" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 transition" title="Open the Corporate / Financial Statement app"><i class="fas fa-building-columns w-6 text-center"></i><span class="ml-4 font-semibold tracking-wide">Corporate Section</span></a>
+                    <a href="#" onclick="openCorporateSection()" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700" title="Open the Corporate / Financial Statement app"><i class="fas fa-building-columns w-6 text-center"></i><span class="ml-4">Corporate Section</span></a>
                     
                     <div class="mt-2">
-                        <a href="#" id="vouchers-toggle" onclick="toggleMenu('vouchers')" class="nav-link flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-700"><div class="flex items-center"><i class="fas fa-file-invoice w-6 text-center"></i><span class="ml-4">Vouchers</span></div><i id="vouchers-arrow" class="fas fa-chevron-down text-xs"></i></a>
+                        <a href="#" id="vouchers-toggle" onclick="toggleMenu('vouchers')" class="nav-link flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-700"><div class="flex items-center"><i class="fas fa-file-invoice w-6 text-center"></i><span class="ml-4">ADD VOUCHERS</span></div><i id="vouchers-arrow" class="fas fa-chevron-down text-xs"></i></a>
                         <div id="vouchers-submenu" class="hidden mt-2 space-y-2 pl-8">
                             <a href="#" onclick="showForm('sales')" class="submenu-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 text-sm"><i class="fas fa-chart-line w-6 text-center"></i><span class="ml-3">Sales Voucher</span></a>
                             <a href="#" onclick="showForm('purchase')" class="submenu-link flex items-center px-4 py-2 rounded-lg hover:bg-gray-700 text-sm"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Purchase Voucher</span></a>
@@ -524,14 +524,14 @@
                                         <i class="fas fa-arrow-right text-teal-600 text-xl"></i>
                                     </div>
                                 </div>
-                                <div class="dashboard-card bg-gray-100 border border-gray-300 non-clickable opacity-75 lg:col-span-2">
+                                <div class="dashboard-card bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-300 cursor-pointer lg:col-span-2" onclick="openCorpReportsView()">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <h3 class="text-gray-600 text-sm font-medium">Corporate Reports Submitted</h3>
-                                            <p class="text-2xl font-semibold text-gray-700 mt-2"><i class="fas fa-building mr-2"></i>Coming Soon</p>
-                                            <p class="text-xs text-gray-500 mt-1">Available from the Corporate Section integration</p>
+                                            <h3 class="text-slate-800 text-sm font-medium">Corporate Reports Submitted</h3>
+                                            <p class="text-2xl font-semibold text-slate-900 mt-2"><i class="fas fa-building mr-2"></i>Open</p>
+                                            <p class="text-xs text-slate-600 mt-1">Confirmed &amp; draft corporate reports for this branch</p>
                                         </div>
-                                        <i class="fas fa-lock text-gray-400 text-xl"></i>
+                                        <i class="fas fa-arrow-right text-slate-500 text-xl"></i>
                                     </div>
                                 </div>
                             </div>
@@ -2559,18 +2559,130 @@
 
     <!-- Corporate Section: embeds the full Corporate / Financial Statement app (public/corporate.html) -->
     <div id="corporate-section-overlay" class="hidden fixed inset-0 z-[100] bg-white flex-col">
-        <div class="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-teal-700 to-emerald-600 text-white shadow-md shrink-0">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-building-columns"></i>
-                <span class="font-semibold text-sm tracking-wide">Corporate Section</span>
+        <div class="relative flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-1.5 bg-gradient-to-r from-teal-700 to-emerald-600 text-white shadow-md shrink-0">
+            <!-- Home: back to the VAT App main dashboard -->
+            <button type="button" onclick="goToVatDashboardFromCorporate()" class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 hover:bg-white/30 transition" title="Back to VAT App Main Dashboard" aria-label="Back to VAT App Main Dashboard">
+                <i class="fas fa-house text-sm"></i>
+            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+                <i class="fas fa-building-columns text-sm opacity-90"></i>
+                <span class="font-semibold text-sm tracking-wide whitespace-nowrap">Corporate Section</span>
+                <span id="corp-top-view" class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-white/15 border border-white/20 text-[11px] font-semibold whitespace-nowrap">Total Review Form</span>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="corp-migrate.html" target="_blank" rel="noopener" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition" title="Copy data from the old CORP Firebase project"><i class="fas fa-download mr-1"></i>Import Old CORP Data</a>
-                <button type="button" onclick="reloadCorporateSection()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition" title="Reload the embedded Corporate app"><i class="fas fa-rotate-right mr-1"></i>Reload</button>
-                <button type="button" onclick="closeCorporateSection()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition"><i class="fas fa-arrow-left mr-1"></i>Back to VAT App</button>
+
+            <!-- Active company / serial / draft -->
+            <div class="flex items-center gap-1.5 text-[11px] overflow-x-auto scrollbar-none min-w-0 flex-1 py-0.5">
+                <span class="inline-flex items-center px-2 py-1 rounded-md font-semibold bg-white/15 border border-white/20 whitespace-nowrap" title="Active Company">
+                    <i class="fas fa-building mr-1.5 text-[10px] opacity-90"></i>
+                    <strong id="corp-top-company" class="font-bold max-w-[200px] truncate">Select Company</strong>
+                </span>
+                <span class="inline-flex items-center px-2 py-1 rounded-md font-mono font-bold bg-white/15 border border-white/20 whitespace-nowrap" title="Corporate Serial Number">
+                    <i class="fas fa-hashtag mr-1 text-[10px] opacity-90"></i>
+                    <strong id="corp-top-serial">CORP-001</strong>
+                </span>
+                <span class="inline-flex items-center px-2 py-1 rounded-md bg-white/15 border border-white/20 whitespace-nowrap" title="Draft Name">
+                    <i class="fas fa-file-lines mr-1.5 text-[10px] opacity-90"></i>
+                    <strong id="corp-top-draft" class="font-mono">&mdash;</strong>
+                </span>
+                <span class="hidden lg:inline-flex items-center px-2 py-1 rounded-md bg-white/10 border border-white/20 whitespace-nowrap" title="Corporate Period">
+                    <i class="fas fa-calendar-days mr-1.5 text-[10px] opacity-90"></i>
+                    <strong id="corp-top-period" class="font-semibold">&mdash;</strong>
+                </span>
+            </div>
+
+            <!-- ALL ACTIONS -->
+            <button type="button" onclick="corpAction('emaratax-bridge')" class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/30 border border-white/20 text-white text-xs font-bold transition" title="FTA EmaraTax Bridge">
+                <i class="fas fa-right-left text-[11px]"></i>
+                <span class="hidden md:inline whitespace-nowrap">FTA Bridge</span>
+            </button>
+            <div class="relative shrink-0">
+                <button type="button" id="corp-all-actions-btn" onclick="toggleCorpActions(event)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-teal-800 hover:bg-teal-50 transition text-xs font-bold shadow-sm" title="All corporate actions">
+                    <i class="fas fa-bolt text-[11px]"></i>
+                    <span class="whitespace-nowrap">ALL ACTIONS</span>
+                    <i id="corp-all-actions-caret" class="fas fa-chevron-down text-[9px] transition-transform duration-200"></i>
+                </button>
+                <div id="corp-all-actions-panel" class="hidden absolute right-0 top-full mt-2 w-[21rem] max-w-[92vw] max-h-[78vh] overflow-y-auto bg-white text-gray-800 rounded-2xl shadow-2xl border border-gray-200 z-[120] divide-y divide-gray-100">
+                    <div class="px-3.5 py-2 bg-gray-50/80">
+                        <p class="text-[10px] font-bold tracking-widest text-gray-400">WORKSPACE</p>
+                    </div>
+                    <div class="p-1.5">
+                        <button type="button" onclick="corpAction('data-entry')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-slate-100 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0 group-hover:bg-slate-700 transition"><i class="fas fa-pen-to-square text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Data Entry</span><span class="block text-[10px] text-gray-500 truncate">Full-page company, documents &amp; statement inputs</span></span>
+                        </button>
+                    </div>
+                    <div class="px-3.5 py-2 bg-gray-50/80">
+                        <p class="text-[10px] font-bold tracking-widest text-gray-400">REPORT</p>
+                    </div>
+                    <div class="p-1.5">
+                        <button type="button" onclick="corpAction('save-draft')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-amber-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition"><i class="fas fa-floppy-disk text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Save Draft</span><span class="block text-[10px] text-gray-500 truncate">Save the current report as a draft</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('save-draft-as')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-indigo-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition"><i class="fas fa-copy text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Save Draft As&hellip;</span><span class="block text-[10px] text-gray-500 truncate">New name, company, serial &amp; roll-forward</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('confirm-finalize')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-purple-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-purple-600 group-hover:text-white transition"><i class="fas fa-shield-halved text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Confirm Finalise Save</span><span class="block text-[10px] text-gray-500 truncate">Confirm, finalise &amp; file the report</span></span>
+                        </button>
+                    </div>
+                    <div class="px-3.5 py-2 bg-gray-50/80">
+                        <p class="text-[10px] font-bold tracking-widest text-gray-400">FILING &amp; COMPLIANCE</p>
+                    </div>
+                    <div class="p-1.5">
+                        <button type="button" onclick="corpAction('emaratax-bridge')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-teal-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition"><i class="fas fa-right-left text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">FTA EmaraTax Bridge</span><span class="block text-[10px] text-gray-500 truncate">Pre-filing box-by-box worksheet</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('compliance')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-sky-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition"><i class="fas fa-table-list text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Compliance Dashboard</span><span class="block text-[10px] text-gray-500 truncate">Multi-company status &amp; due dates</span></span>
+                        </button>
+                    </div>
+                    <div class="px-3.5 py-2 bg-gray-50/80">
+                        <p class="text-[10px] font-bold tracking-widest text-gray-400">DOWNLOAD</p>
+                    </div>
+                    <div class="p-1.5">
+                        <button type="button" onclick="corpAction('excel')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-emerald-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fas fa-file-excel text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Excel (.xlsx)</span><span class="block text-[10px] text-gray-500 truncate">Download the workbook</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('pdf')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-blue-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition"><i class="fas fa-file-pdf text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Generate 15-Page PDF</span><span class="block text-[10px] text-gray-500 truncate">Full financial statement report</span></span>
+                        </button>
+                    </div>
+                    <div class="px-3.5 py-2 bg-gray-50/80">
+                        <p class="text-[10px] font-bold tracking-widest text-gray-400">MANAGE</p>
+                    </div>
+                    <div class="p-1.5">
+                        <button type="button" onclick="corpAction('drafts')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-amber-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition"><i class="fas fa-folder-open text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Draft Management</span><span class="block text-[10px] text-gray-500 truncate">Saved &amp; finalised reports</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('companies')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-purple-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 group-hover:bg-purple-600 group-hover:text-white transition"><i class="fas fa-building text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Manage Companies</span><span class="block text-[10px] text-gray-500 truncate">Companies sourced from VAT branches</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('company-corps')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-emerald-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fas fa-layer-group text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Company Wise Corps</span><span class="block text-[10px] text-gray-500 truncate">Reports grouped by company</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('history')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-blue-50 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition"><i class="fas fa-clock-rotate-left text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">History</span><span class="block text-[10px] text-gray-500 truncate">Audit log of corporate changes</span></span>
+                        </button>
+                        <button type="button" onclick="corpAction('menu')" class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-gray-100 transition text-left group">
+                            <span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center shrink-0 group-hover:bg-gray-700 group-hover:text-white transition"><i class="fas fa-bars text-xs"></i></span>
+                            <span class="min-w-0"><span class="block text-[13px] font-bold text-gray-900">Open Navigation Menu</span><span class="block text-[10px] text-gray-500 truncate">Side menu of corporate tools</span></span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        <iframe id="corporate-app-frame" class="w-full border-0 bg-white" style="height: calc(100% - 44px);" title="Corporate Section"></iframe>
+        <iframe id="corporate-app-frame" class="w-full flex-1 min-h-0 border-0 bg-white" title="Corporate Section"></iframe>
     </div>
 
     <!-- VAT Returns Submitted — full-page bleeding view -->
@@ -2651,6 +2763,69 @@
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeVatSubmissionModal()" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">Cancel</button>
                     <button type="button" onclick="saveVatSubmission()" class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Corporate Reports — full-page bleeding view -->
+    <div id="corp-reports-overlay" class="hidden fixed inset-0 z-[95] bg-slate-100 flex-col">
+        <div class="flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 text-white shadow-md shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" onclick="closeCorpReportsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                <div class="min-w-0">
+                    <div class="font-semibold text-sm tracking-wide">Corporate Reports</div>
+                    <div class="text-[11px] text-white/80 truncate">
+                        <span id="corp-reports-branch">—</span>
+                        &middot; Corp No: <span id="corp-reports-no">—</span>
+                        &middot; Period: <span id="corp-reports-period">—</span>
+                    </div>
+                    <div id="corp-reports-notice" class="text-[11px] text-white/90 mt-0.5 leading-tight">Open this view from the Branch Dashboard.</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right leading-tight">
+                    <div class="text-[9px] uppercase tracking-wide text-white/70">Reports</div>
+                    <div id="corp-reports-count" class="text-sm font-bold">—</div>
+                </div>
+                <button type="button" onclick="refreshCorpReportsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-0">
+            <div class="bg-white border-0 overflow-hidden">
+                <div id="corp-reports-top-scroll" class="overflow-x-auto bg-slate-50 border-b border-gray-200" style="height: 16px;">
+                    <div id="corp-reports-top-scroll-inner" style="height: 1px; width: 1px;"></div>
+                </div>
+                <div id="corp-reports-table-scroll" class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse min-w-[1180px]">
+                        <thead>
+                            <tr class="text-[11px] uppercase tracking-wide">
+                                <th rowspan="2" style="width: 44px;" class="px-2 py-2 border border-slate-200 bg-slate-100 text-slate-700 text-center">#</th>
+                                <th rowspan="2" style="width: 210px;" class="px-2 py-2 border border-slate-200 bg-slate-100 text-slate-700 text-center">Period Dates</th>
+                                <th colspan="4" class="px-2 py-2 border border-emerald-200 bg-emerald-100 text-emerald-900 text-center">Trading &amp; Stock</th>
+                                <th rowspan="2" class="px-2 py-2 border border-indigo-200 bg-indigo-100 text-indigo-900 text-right min-w-[110px]">Total Expenses</th>
+                                <th rowspan="2" class="px-2 py-2 border border-teal-200 bg-teal-100 text-teal-900 text-right min-w-[110px]">Net Profit</th>
+                                <th rowspan="2" class="px-2 py-2 border border-blue-200 bg-blue-100 text-blue-900 text-right min-w-[110px]">Total Assets</th>
+                                <th rowspan="2" class="px-2 py-2 border border-purple-200 bg-purple-100 text-purple-900 text-right min-w-[130px]">Equity &amp; Liabilities</th>
+                                <th rowspan="2" style="width: 96px;" class="px-2 py-2 border border-slate-200 bg-slate-100 text-slate-700 text-center">Status</th>
+                            </tr>
+                            <tr class="text-[10px] uppercase tracking-wide">
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right min-w-[105px]">Opening Inv.</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right min-w-[105px]">Purchases</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right min-w-[105px]">Total Sales</th>
+                                <th class="px-2 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 text-right min-w-[105px]">Closing Inv.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corp-reports-tbody">
+                            <tr><td colspan="11" class="text-center py-6 text-gray-500">Open this view from the Branch Dashboard.</td></tr>
+                        </tbody>
+                        <tfoot id="corp-reports-tfoot" class="bg-slate-100 font-bold text-[11px]"></tfoot>
+                    </table>
+                </div>
+                <div class="px-4 py-2 border-t border-gray-200 bg-slate-50 text-[11px] text-gray-600 flex flex-wrap gap-x-5 gap-y-1">
+                    <span><i class="fas fa-circle text-emerald-500 mr-1"></i>Total Assets = Equity &amp; Liabilities</span>
+                    <span><i class="fas fa-circle text-rose-500 mr-1"></i>Out of balance</span>
+                    <span>Period dates are editable and save back to the corporate report.</span>
                 </div>
             </div>
         </div>
@@ -9229,7 +9404,7 @@
         };
 
         // --- Corporate Section (embedded CORP app) ---
-        const CORP_BUILD_VERSION = '2026-11-19-3';
+        const CORP_BUILD_VERSION = '2026-11-20-7';
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
             const overlay = document.getElementById('corporate-section-overlay');
@@ -9250,6 +9425,7 @@
                 frame.dataset.refreshWired = '1';
                 frame.addEventListener('load', () => {
                     try { frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin); } catch (_) {}
+                    try { frame.contentWindow.postMessage({ type: 'corp-get-state' }, window.location.origin); } catch (_) {}
                 });
             }
             _corpPrevActiveLink = document.querySelector('.nav-link.bg-gray-700, .submenu-link.bg-gray-700');
@@ -9259,9 +9435,13 @@
             const link = document.querySelector('[onclick="openCorporateSection()"]');
             if (link) link.classList.add('bg-gray-700');
             if (window.innerWidth < 768 && typeof window.hideSidebar === 'function') window.hideSidebar();
+            window.closeCorpActions();
             // Ask the embedded corporate app to refresh branch-sourced companies.
             try {
-                if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin);
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin);
+                    frame.contentWindow.postMessage({ type: 'corp-get-state' }, window.location.origin);
+                }
             } catch (_) {}
         };
 
@@ -9281,14 +9461,74 @@
                 overlay.classList.add('hidden');
                 overlay.classList.remove('flex');
             }
+            window.closeCorpActions();
             document.querySelectorAll('.nav-link, .submenu-link').forEach(link => link.classList.remove('bg-gray-700'));
             if (_corpPrevActiveLink) _corpPrevActiveLink.classList.add('bg-gray-700');
             _corpPrevActiveLink = null;
         };
 
+        // --- Corporate "ALL ACTIONS" menu (lives in the top bar) ---
+        window.toggleCorpActions = (event) => {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById('corp-all-actions-panel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            const caret = document.getElementById('corp-all-actions-caret');
+            if (caret) caret.classList.toggle('rotate-180', !panel.classList.contains('hidden'));
+        };
+
+        window.closeCorpActions = () => {
+            const panel = document.getElementById('corp-all-actions-panel');
+            if (panel) panel.classList.add('hidden');
+            const caret = document.getElementById('corp-all-actions-caret');
+            if (caret) caret.classList.remove('rotate-180');
+        };
+
+        window.corpAction = (action) => {
+            window.closeCorpActions();
+            const frame = document.getElementById('corporate-app-frame');
+            if (!frame || !frame.contentWindow) return;
+            try {
+                frame.contentWindow.postMessage({ type: 'corp-action', action: action }, window.location.origin);
+            } catch (_) {}
+        };
+
+        window.goToVatDashboardFromCorporate = () => {
+            window.closeCorpActions();
+            window.closeCorporateSection();
+            if (typeof window.showForm === 'function') window.showForm('mainDashboard');
+        };
+
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('corp-all-actions-panel');
+            if (!panel || panel.classList.contains('hidden')) return;
+            const wrapper = panel.parentElement;
+            if (wrapper && !wrapper.contains(event.target)) window.closeCorpActions();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') window.closeCorpActions();
+        });
+
         // The embedded corporate app can ask us to open Manage Branches.
         window.addEventListener('message', (e) => {
             if (e.origin !== window.location.origin) return;
+            if (e.data && e.data.type === 'corp-view') {
+                const viewEl = document.getElementById('corp-top-view');
+                if (viewEl && e.data.view) viewEl.textContent = e.data.view;
+                return;
+            }
+            if (e.data && e.data.type === 'corp-state') {
+                const companyEl = document.getElementById('corp-top-company');
+                const draftEl = document.getElementById('corp-top-draft');
+                const serialEl = document.getElementById('corp-top-serial');
+                const periodEl = document.getElementById('corp-top-period');
+                if (companyEl && e.data.company) companyEl.textContent = e.data.company;
+                if (serialEl && e.data.serial) serialEl.textContent = e.data.serial;
+                if (draftEl) draftEl.textContent = e.data.draft || '\u2014';
+                if (periodEl && e.data.period) periodEl.textContent = e.data.period;
+                return;
+            }
             if (e.data && e.data.type === 'vat-open-branches') {
                 window.closeCorporateSection();
                 window.showForm('branches');
@@ -9750,6 +9990,360 @@
         window.refreshVatReturnsView = () => {
             vatLoadReturnsForBranch();
         };
+
+        // ==========================================================
+        // Corporate Reports (per branch) — full-page view
+        // All figures are copied from the corporate report as saved.
+        // Nothing is recalculated in the VAT app.
+        // ==========================================================
+        const CORP_REPORTS_STATE = { branchName: '', branchId: '', rows: [] };
+
+        const corpNum = (v) => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+        const corpEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const corpNormKey = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const corpPad2 = (n) => String(n).padStart(2, '0');
+        const corpIso = (d) => `${d.getFullYear()}-${corpPad2(d.getMonth() + 1)}-${corpPad2(d.getDate())}`;
+        const corpParse = (v) => {
+            if (!v) return null;
+            const s = String(v);
+            const d = new Date(s + (s.length === 10 ? 'T00:00:00' : ''));
+            return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        };
+        const corpFmtDate = (v) => {
+            const d = corpParse(v);
+            return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        };
+        const corpMoney = (v) => Math.round(corpNum(v)).toLocaleString();
+        // Reads a value saved by the Corporate Section; the fallback is only for drafts
+        // saved before these totals were persisted.
+        const corpStored = (f, id, fallback) => {
+            if (!f) return fallback;
+            const v = f[id];
+            if (v === undefined || v === null || v === '') return fallback;
+            return corpNum(v);
+        };
+
+        function corpBuildRow(params) {
+            const f = params.formData || {};
+            const d = params.data || {};
+            const cos = d.costOfSalesData || {};
+            const inv = d.inventoryData || {};
+
+            // ---- Values copied straight from the corporate report ----
+            const sales = corpNum(f['pl-sales']);
+            const openingInv = corpNum(cos.opening);
+            const purchases = corpNum(cos.purchases);
+            const closingInv = corpNum(inv.age_1_150);
+
+            // Total expenses = the three stored expense lines added together
+            const expenses = Math.abs(corpNum(f['pl-admin'])) +
+                Math.abs(corpNum(f['pl-remuneration'])) +
+                Math.abs(corpNum(f['pl-depreciation']));
+
+            // Net profit and statement totals exactly as saved by the Corporate Section
+            const netProfit = corpStored(f, 'pl-net-after-tax',
+                corpNum(f['pl-sales']) + corpNum(f['pl-cost']) + corpNum(f['pl-admin']) +
+                corpNum(f['pl-depreciation']) + corpNum(f['pl-tax']) - Math.abs(corpNum(f['pl-remuneration'])));
+            const totalAssets = corpStored(f, 'total-assets',
+                corpNum(f['pos-ppe']) + corpNum(f['pos-inventory']) + corpNum(f['pos-receivables']) +
+                corpNum(f['pos-cash']) + corpNum(f['pos-deposits']));
+            const totalEL = corpStored(f, 'total-equity-liabilities',
+                corpNum(f['pos-capital']) + corpNum(f['pos-retained']) + corpNum(f['pos-shareholder']) +
+                corpNum(f['pos-payables']) + corpNum(f['pos-accruals']) + corpNum(f['pos-tax-payable']));
+
+            return {
+                key: params.key,
+                recId: params.recId || '',
+                kind: params.kind,
+                name: params.name || '',
+                serial: params.serial || '',
+                start: params.start || '',
+                end: params.end || '',
+                sales, purchases, openingInv, closingInv, expenses, netProfit, totalAssets, totalEL,
+                balanced: Math.abs(totalAssets - totalEL) < 0.5
+            };
+        }
+
+        window.openCorpReportsView = () => {
+            const overlay = document.getElementById('corp-reports-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            corpReportsLoad();
+        };
+
+        window.closeCorpReportsView = () => {
+            const overlay = document.getElementById('corp-reports-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+        };
+
+        window.refreshCorpReportsView = () => corpReportsLoad();
+
+        async function corpReportsLoad() {
+            const tbody = document.getElementById('corp-reports-tbody');
+            if (!tbody) return;
+            const notice = document.getElementById('corp-reports-notice');
+            const branchName = window.selectedBranch;
+
+            if (!branchName) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 text-red-500">Please select a branch first.</td></tr>';
+                if (notice) notice.textContent = 'Please select a branch from the Branch Dashboard first.';
+                return;
+            }
+
+            const branch = (window.branchList || []).find(b => b.name === branchName) || {};
+            CORP_REPORTS_STATE.branchName = branchName;
+            CORP_REPORTS_STATE.branchId = branch.id || '';
+
+            document.getElementById('corp-reports-branch').textContent = branchName;
+            document.getElementById('corp-reports-no').textContent = branch.corporateNo || '—';
+            document.getElementById('corp-reports-period').textContent =
+                (branch.corporatePeriodStart || '—') + ' → ' + (branch.corporatePeriodEnd || '—');
+            if (notice) notice.textContent = 'Loading corporate reports…';
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 text-indigo-500">Loading corporate reports…</td></tr>';
+
+            if (!window.currentUserId) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 text-gray-500">Sign in to load corporate reports.</td></tr>';
+                if (notice) notice.textContent = 'Not signed in.';
+                return;
+            }
+
+            let finalized = [];
+            try {
+                const snap = await getDoc(doc(db, `users/${window.currentUserId}/app_data`, 'finalized_corps'));
+                if (snap.exists()) finalized = snap.data().list || [];
+            } catch (err) {
+                console.error('Error loading finalized_corps:', err);
+            }
+
+            let drafts = [];
+            try {
+                const snap = await getDocs(collection(db, `users/${window.currentUserId}/financial_drafts`));
+                drafts = snap.docs.map(s => ({ id: s.id, ...s.data() }));
+            } catch (err) {
+                console.error('Error loading financial_drafts:', err);
+            }
+
+            const branchKey = corpNormKey(branchName);
+            const matches = (companyId, companyName) =>
+                (branch.id && String(companyId || '') === String(branch.id)) || corpNormKey(companyName) === branchKey;
+
+            const rows = [];
+
+            (finalized || []).forEach(rec => {
+                const d = rec.data || {};
+                const f = d.formData || {};
+                const cName = rec.companyName || f['company-name'] || '';
+                if (!matches(rec.companyId || d.companyId, cName)) return;
+                rows.push(corpBuildRow({
+                    key: 'fin:' + (rec.id || rec.serialNumber || Math.random()),
+                    recId: rec.id || '',
+                    kind: 'finalized',
+                    name: rec.draftName || '',
+                    serial: rec.serialNumber || f['corporate-serial-number'] || '',
+                    start: rec.reportStartDate || f['report-start-date'] || '',
+                    end: rec.reportEndDate || f['report-end-date'] || '',
+                    data: d,
+                    formData: f
+                }));
+            });
+
+            (drafts || []).forEach(dr => {
+                const d = dr.data || dr;
+                const f = d.formData || {};
+                const cName = f['company-name'] || '';
+                if (!matches(d.companyId, cName)) return;
+                const serial = d.serialNumber || f['corporate-serial-number'] || '';
+                rows.push(corpBuildRow({
+                    key: 'drf:' + (dr.id || serial),
+                    kind: 'draft',
+                    name: dr.id || d.draftName || '',
+                    serial,
+                    start: f['report-start-date'] || '',
+                    end: f['report-end-date'] || '',
+                    data: d,
+                    formData: f
+                }));
+            });
+
+            rows.sort((a, b) => {
+                const na = parseInt(String(a.serial).replace(/\D/g, ''), 10) || 0;
+                const nb = parseInt(String(b.serial).replace(/\D/g, ''), 10) || 0;
+                if (na !== nb) return na - nb;
+                return String(a.start).localeCompare(String(b.start));
+            });
+
+            CORP_REPORTS_STATE.rows = rows;
+            corpReportsRender();
+        }
+
+        function corpReportsRender() {
+            const rows = CORP_REPORTS_STATE.rows || [];
+            const tbody = document.getElementById('corp-reports-tbody');
+            const tfoot = document.getElementById('corp-reports-tfoot');
+            const notice = document.getElementById('corp-reports-notice');
+            const countEl = document.getElementById('corp-reports-count');
+            if (!tbody) return;
+
+            if (countEl) countEl.textContent = rows.length;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-8 text-gray-500">No corporate reports found for this branch.<br><span class="text-xs">Create one in the Corporate Section.</span></td></tr>';
+                if (tfoot) tfoot.innerHTML = '';
+                if (notice) notice.textContent = 'No reports yet — open the Corporate Section to start a report.';
+                return;
+            }
+
+            const confirmedCount = rows.filter(r => r.kind === 'finalized').length;
+            if (notice) notice.textContent = `${rows.length} report(s) · ${confirmedCount} confirmed · ${rows.length - confirmedCount} draft`;
+
+            const moneyCell = 'px-2 py-1.5 border border-slate-200 text-right font-mono';
+            tbody.innerHTML = rows.map((r, i) => {
+                const balCls = r.balanced ? 'bg-emerald-50 text-emerald-700 font-bold' : 'bg-rose-50 text-rose-700 font-bold';
+                const status = r.kind === 'finalized'
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold">Confirmed</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold">Draft</span>';
+                return `<tr class="hover:bg-slate-50">
+                    <td class="px-2 py-1.5 border border-slate-200 text-center font-mono text-[11px] text-slate-600">${i + 1}</td>
+                    <td class="px-2 py-1.5 border border-slate-200">
+                        <div class="font-mono text-[11px] font-bold text-slate-800">${corpEsc(r.serial || '—')}</div>
+                        <div class="flex items-center gap-1 mt-1">
+                            <input type="date" value="${corpEsc(r.start)}" data-corp-start="${corpEsc(r.key)}" class="w-[112px] text-[10px] border border-gray-300 rounded px-1 py-0.5" title="Period start">
+                            <span class="text-gray-400">→</span>
+                            <input type="date" value="${corpEsc(r.end)}" data-corp-end="${corpEsc(r.key)}" class="w-[112px] text-[10px] border border-gray-300 rounded px-1 py-0.5" title="Period end">
+                        </div>
+                    </td>
+                    <td class="${moneyCell} text-slate-700">${corpMoney(r.openingInv)}</td>
+                    <td class="${moneyCell} text-slate-700">${corpMoney(r.purchases)}</td>
+                    <td class="${moneyCell} text-slate-900 font-semibold">${corpMoney(r.sales)}</td>
+                    <td class="${moneyCell} text-slate-700">${corpMoney(r.closingInv)}</td>
+                    <td class="${moneyCell} text-indigo-800">${corpMoney(r.expenses)}</td>
+                    <td class="${moneyCell} ${r.netProfit >= 0 ? 'text-teal-800 font-bold' : 'text-rose-700 font-bold'}">${corpMoney(r.netProfit)}</td>
+                    <td class="${moneyCell} ${balCls}">${corpMoney(r.totalAssets)}</td>
+                    <td class="${moneyCell} ${balCls}">${corpMoney(r.totalEL)}</td>
+                    <td class="px-2 py-1.5 border border-slate-200 text-center">${status}</td>
+                </tr>`;
+            }).join('');
+
+            const totals = rows.reduce((t, r) => {
+                t.opening += r.openingInv; t.purchases += r.purchases; t.sales += r.sales;
+                t.closing += r.closingInv; t.expenses += r.expenses; t.net += r.netProfit;
+                t.assets += r.totalAssets; t.el += r.totalEL;
+                return t;
+            }, { opening: 0, purchases: 0, sales: 0, closing: 0, expenses: 0, net: 0, assets: 0, el: 0 });
+
+            if (tfoot) {
+                const c = 'px-2 py-1.5 border border-slate-300 text-right font-mono';
+                tfoot.innerHTML = `<tr class="bg-slate-100 font-bold text-[11px]">
+                    <td colspan="2" class="px-2 py-1.5 border border-slate-300 text-left">Totals (${rows.length} report${rows.length === 1 ? '' : 's'})</td>
+                    <td class="${c}">${corpMoney(totals.opening)}</td>
+                    <td class="${c}">${corpMoney(totals.purchases)}</td>
+                    <td class="${c}">${corpMoney(totals.sales)}</td>
+                    <td class="${c}">${corpMoney(totals.closing)}</td>
+                    <td class="${c}">${corpMoney(totals.expenses)}</td>
+                    <td class="${c}">${corpMoney(totals.net)}</td>
+                    <td class="${c}">${corpMoney(totals.assets)}</td>
+                    <td class="${c}">${corpMoney(totals.el)}</td>
+                    <td class="px-2 py-1.5 border border-slate-300"></td>
+                </tr>`;
+            }
+        }
+
+        async function corpReportsSavePeriod(row) {
+            if (!row || !window.currentUserId) return;
+            try {
+                if (row.kind === 'draft' && row.name) {
+                    await updateDoc(doc(db, `users/${window.currentUserId}/financial_drafts`, row.name), {
+                        'formData.report-start-date': row.start,
+                        'formData.report-end-date': row.end
+                    });
+                } else if (row.kind === 'finalized' && row.recId) {
+                    const ref = doc(db, `users/${window.currentUserId}/app_data`, 'finalized_corps');
+                    const snap = await getDoc(ref);
+                    if (snap.exists()) {
+                        const list = snap.data().list || [];
+                        const idx = list.findIndex(r => r.id === row.recId);
+                        if (idx >= 0) {
+                            const rec = list[idx];
+                            rec.reportStartDate = row.start;
+                            rec.reportEndDate = row.end;
+                            rec.periodFormatted = corpFmtDate(row.start) + ' – ' + corpFmtDate(row.end);
+                            if (!rec.data) rec.data = {};
+                            if (!rec.data.formData) rec.data.formData = {};
+                            rec.data.formData['report-start-date'] = row.start;
+                            rec.data.formData['report-end-date'] = row.end;
+                            list[idx] = rec;
+                            await setDoc(ref, { list });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error saving corporate period:', err);
+                alert('Could not save the period dates. Please check your connection.');
+            }
+        }
+
+        async function corpReportsHandlePeriodChange(event) {
+            const el = event.target;
+            if (!el || el.tagName !== 'INPUT' || el.type !== 'date') return;
+            const isStart = el.hasAttribute('data-corp-start');
+            const isEnd = el.hasAttribute('data-corp-end');
+            if (!isStart && !isEnd) return;
+
+            const key = isStart ? el.getAttribute('data-corp-start') : el.getAttribute('data-corp-end');
+            const row = (CORP_REPORTS_STATE.rows || []).find(r => r.key === key);
+            if (!row) return;
+            if (isStart) row.start = el.value; else row.end = el.value;
+
+            await corpReportsSavePeriod(row);
+
+            // Next period of the same company follows on automatically (next 12 months)
+            if (isEnd && row.end) {
+                const endDate = corpParse(row.end);
+                const serialNow = parseInt(String(row.serial).replace(/\D/g, ''), 10) || 0;
+                const nextRow = (CORP_REPORTS_STATE.rows || []).find(r =>
+                    r.key !== row.key && r.kind === 'draft' && (!r.start || !r.end) &&
+                    (parseInt(String(r.serial).replace(/\D/g, ''), 10) || 0) > serialNow
+                );
+                if (endDate && nextRow) {
+                    const start = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1);
+                    const end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate() - 1);
+                    nextRow.start = corpIso(start);
+                    nextRow.end = corpIso(end);
+                    await corpReportsSavePeriod(nextRow);
+                }
+            }
+
+            corpReportsRender();
+        }
+
+        (function wireCorpReportsView() {
+            const tbody = document.getElementById('corp-reports-tbody');
+            if (tbody) {
+                tbody.addEventListener('change', corpReportsHandlePeriodChange);
+                tbody.addEventListener('click', (e) => {
+                    const input = e.target.closest('input[type="date"]');
+                    if (input && typeof input.showPicker === 'function') {
+                        try { input.showPicker(); } catch (_) { }
+                    }
+                });
+            }
+            const top = document.getElementById('corp-reports-top-scroll');
+            const inner = document.getElementById('corp-reports-top-scroll-inner');
+            const tableScroll = document.getElementById('corp-reports-table-scroll');
+            if (top && inner && tableScroll) {
+                top.addEventListener('scroll', () => {
+                    if (tableScroll.scrollLeft !== top.scrollLeft) tableScroll.scrollLeft = top.scrollLeft;
+                });
+                tableScroll.addEventListener('scroll', () => {
+                    if (top.scrollLeft !== tableScroll.scrollLeft) top.scrollLeft = tableScroll.scrollLeft;
+                    inner.style.width = tableScroll.scrollWidth + 'px';
+                });
+            }
+        })();
 
         // Keep the top horizontal scrollbar in sync with the table's horizontal scroll.
         function vatSyncTopScrollbar() {
