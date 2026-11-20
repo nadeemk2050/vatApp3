@@ -354,14 +354,14 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
         // Make Firebase functions globally available
         window.firebase = {
             initializeApp,
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
-            getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, setLogLevel,
+            getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel,
             getAnalytics,
             // Add new auth functions
             createUserWithEmailAndPassword,
@@ -1454,8 +1454,12 @@
                                         <div class="space-y-4">
                                         <div>
                                         <label for="pl-sales" class="block text-sm font-medium text-gray-700">Sales</label>
-                                        <input type="number" id="pl-sales" value="2528668" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <p class="form-field-note">Note 15: Enter total sales here.</p>
+                                        <input type="number" id="pl-sales" value="2528668" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" readonly>
+                                        <div class="mt-1 flex items-center justify-between gap-2 text-[11px]">
+                                            <span id="vat-sync-sales-badge" class="auto-chip">AUTO</span>
+                                            <button type="button" id="vat-sync-sales-btn" class="text-blue-600 font-semibold underline" onclick="unlockVatField('sales')">Override</button>
+                                        </div>
+                                        <p class="form-field-note" id="vat-sync-status">Sales &amp; zero-rated exports are pulled from the VAT app.</p>
                                         </div>
                                         <div>
                                         <label for="pl-cost" class="block text-sm font-medium text-gray-700">Cost of sales (Enter as negative)</label>
@@ -2150,7 +2154,12 @@
                 <div class="form-row">
                     <label for="cos-purchases" class="form-label">Purchase and direct expenses</label>
                     <div class="form-input">
-                        <input type="number" id="cos-purchases" value="1366842">
+                        <input type="number" id="cos-purchases" value="1366842" readonly>
+                        <div class="flex items-center justify-between gap-2 mt-1 text-[11px]">
+                            <span id="vat-sync-purchases-badge" class="auto-chip">AUTO</span>
+                            <button type="button" id="vat-sync-purchases-btn" class="text-blue-600 font-semibold underline" onclick="unlockVatField('purchases')">Override</button>
+                        </div>
+                        <p class="form-field-note" id="vat-sync-status-cos">Purchases &amp; imports are pulled from the VAT app.</p>
                     </div>
                 </div>
                 <div class="form-row">
@@ -3270,7 +3279,7 @@
         const {
             initializeApp,
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
-            getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, setLogLevel,
+            getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel,
             getAnalytics, // Added this line
             // Add new auth functions
             createUserWithEmailAndPassword,
@@ -4574,7 +4583,9 @@ const mainCommentList = document.getElementById('main-comment-list');
             }
             if (!userId || !companiesDocRef) return;
             try {
-                await setDoc(companiesDocRef, { list: companiesData });
+                // Normalise to plain JSON so Firestore never sees cross-realm arrays/objects
+                const plainList = JSON.parse(JSON.stringify(companiesData || []));
+                await setDoc(companiesDocRef, { list: plainList });
             } catch (error) {
                 console.error("Error saving companies to Firestore: ", error);
             }
@@ -4987,6 +4998,7 @@ const mainCommentList = document.getElementById('main-comment-list');
             // Switch to General Information Tab
             const genTab = document.querySelector('.tab-btn[data-tab="general"]');
             openDataEntry('general');
+            setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(); }, 0);
         }
 
         // --- Corporate Audit History Management ---
@@ -5430,6 +5442,8 @@ const mainCommentList = document.getElementById('main-comment-list');
                 stampCustomPages: stampCustomPages,
 
                 includeCompanyNameAr: document.getElementById('include-company-name-ar') ? document.getElementById('include-company-name-ar').checked : false,
+                vatSalesManual: !!vatSalesManual,
+                vatPurchasesManual: !!vatPurchasesManual,
                 serialNumber: (document.getElementById('corporate-serial-number') ? document.getElementById('corporate-serial-number').value.trim().toUpperCase() : '') || 'CORP-001'
             };
         }
@@ -5548,6 +5562,9 @@ const mainCommentList = document.getElementById('main-comment-list');
 
             // Restore Arabic header checkbox
             includeCompanyNameAr = !!data.includeCompanyNameAr;
+            vatSalesManual = !!data.vatSalesManual;
+            vatPurchasesManual = !!data.vatPurchasesManual;
+            applyVatLockUi();
             const incArEl = document.getElementById('include-company-name-ar');
             if (incArEl) incArEl.checked = includeCompanyNameAr;
 
@@ -5675,6 +5692,7 @@ const mainCommentList = document.getElementById('main-comment-list');
             if (companyListContainer) renderCompanyList();
 
             if (!userId) {
+                rememberLastOpened('draft', draftName);
                 showDraftMessage(`Draft "${draftName}" saved locally!`, false);
                 return;
             }
@@ -7351,6 +7369,7 @@ const mainCommentList = document.getElementById('main-comment-list');
         function loadFinalizedReport(reportId) {
             const report = finalizedCorpsData.find(r => r.id === reportId);
             if (!report || !report.data) return;
+            rememberLastOpened('finalized', reportId);
 
             setFullDraftData(report.data);
             if (draftNameInput) draftNameInput.value = report.draftName;
@@ -8087,8 +8106,9 @@ const mainCommentList = document.getElementById('main-comment-list');
             }
         }
 
-        async function loadDraftByName(draftName) {
+        async function loadDraftByName(draftName, opts) {
             if (!draftName) return;
+            const options = opts || {};
 
             let loadedData = null;
 
@@ -8143,15 +8163,17 @@ const mainCommentList = document.getElementById('main-comment-list');
                 }
 
                 showDraftMessage(`Draft "${draftName}" loaded successfully!`, false);
+                rememberLastOpened('draft', draftName);
 
-                // Close Draft Management Modal
-                if (draftManagementModal) {
-                    draftManagementModal.style.display = 'none';
+                if (!options.preload) {
+                    // Close Draft Management Modal
+                    if (draftManagementModal) {
+                        draftManagementModal.style.display = 'none';
+                    }
+                    openDataEntry('general');
                 }
-
-                // Switch to General tab
-                const genTab = document.querySelector('.tab-btn[data-tab="general"]');
-                openDataEntry('general');
+                // Refresh this period's sales & purchases from the VAT app
+                setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(); }, 0);
             } else {
                 showDraftMessage("Draft not found. It may have been deleted.", true);
             }
@@ -11053,7 +11075,7 @@ function renderMainCommentsList() {
 
             
             // Attach listener for starting a new form
-            startNewBtn.addEventListener('click', () => {
+            startNewBtn.addEventListener('click', async () => {
                 const activeCompName = document.getElementById('company-name') ? document.getElementById('company-name').value.trim() : '';
                 if (!activeCompName) {
                     alert('Please select a company first.');
@@ -11114,13 +11136,17 @@ function renderMainCommentsList() {
                     { id: 1, name: 'Mr. NADEEM KHAN', nation: 'PAKISTAN', shares: 5, value: 1000 },
                     { id: 2, name: 'Mr. MUHAMMAD USAMA SAQIB', nation: 'PAKISTAN', shares: 95, value: 1000 },
                 ];
-                retainedEarningsData = { opening: 61856, dividend: 0 };
-                inventoryData = { age_1_150: 67148 };
-                receivablesData = { age_1_60: 627000, geo_uae: 627000 };
-                depositsData = { deposits: 5541, prepaid: 8951 };
-                shareholderAccData = { opening: 33542, funds: 98500 };
-                payablesData = { age_1_30: 588000 };
-                costOfSalesData = { opening: 0, purchases: 1366842 };
+                retainedEarningsData = { opening: 0, dividend: 0 };
+                inventoryData = { age_1_150: 0 };
+                receivablesData = { age_1_60: 0, geo_uae: 0 };
+                depositsData = { deposits: 0, prepaid: 0 };
+                shareholderAccData = { opening: 0, funds: 0 };
+                payablesData = { age_1_30: 0 };
+                costOfSalesData = { opening: 0, purchases: 0 };
+                cashData = { onHand: 0, bank: 0, saved: false };
+                accrualsData = { accrued: 0, other: 0, saved: false };
+                vatSalesManual = false;
+                vatPurchasesManual = false;
     
                 openingInventoryCalcHistory = [];
 
@@ -11152,14 +11178,67 @@ renderMainCommentsList(); // Clear comment list on new form
                 updateLetterheadPreview();
                 updateStampPreview();
                 
+                // Make sure the drafts list is fresh before looking for the previous serial
+                if (userId) {
+                    try {
+                        const snap = await getDocs(collection(db, `users/${userId}/financial_drafts`));
+                        snap.docs.forEach(d => {
+                            const dd = d.data();
+                            const entry = {
+                                id: d.id,
+                                name: d.id,
+                                serialNumber: dd.serialNumber || (dd.formData && dd.formData['corporate-serial-number']) || '',
+                                companyName: (dd.formData && dd.formData['company-name']) || dd.companyName || '',
+                                data: dd
+                            };
+                            const idx = (allSavedDraftsList || []).findIndex(x => (x.name || x.id) === entry.name);
+                            if (idx >= 0) {
+                                if (!allSavedDraftsList[idx].data) allSavedDraftsList[idx] = entry;
+                            } else {
+                                allSavedDraftsList.push(entry);
+                            }
+                        });
+                    } catch (err) {
+                        console.warn('Could not refresh drafts before roll-forward:', err);
+                    }
+                }
+
+                // Mandatory openings: carry forward the previous serial's closing balances
+                const prevReport = findPreviousReportForCompany(activeCompName, nextSerial);
+                console.info('[corporate] roll-forward source:', prevReport ? (prevReport.serial || '(no serial)') : 'none found');
+                if (prevReport) {
+                    try {
+                        const applied = applyRollForwardBalances(prevReport);
+                        console.info('[corporate] opening balances applied:', applied);
+                        const prevFd = (prevReport.data && prevReport.data.formData) || {};
+                        const pStart = prevFd['report-start-date'];
+                        const pEnd = prevFd['report-end-date'];
+                        if (pEnd) {
+                            const padN = n => String(n).padStart(2, '0');
+                            const fmtD = d => `${d.getFullYear()}-${padN(d.getMonth() + 1)}-${padN(d.getDate())}`;
+                            const eD = new Date(pEnd + 'T00:00:00');
+                            const nStart = new Date(eD);
+                            nStart.setDate(nStart.getDate() + 1);
+                            const nEnd = new Date(nStart);
+                            nEnd.setFullYear(nEnd.getFullYear() + 1);
+                            nEnd.setDate(nEnd.getDate() - 1);
+                            document.getElementById('report-start-date').value = fmtD(nStart);
+                            document.getElementById('report-end-date').value = fmtD(nEnd);
+                            syncCorporatePeriod();
+                        }
+                    } catch (err) {
+                        console.warn('Opening balances could not be carried forward:', err);
+                    }
+                }
+
                 // Run all cals and update UI
                 runAllCalculations();
                 updateReviewTab();
-                
-                // Go to first tab
-                tabs[0].click();
-                
-                showDraftMessage("Form has been reset to default values.", false);
+                syncVatPeriodValues();
+
+                showDraftMessage(prevReport
+                    ? 'New draft started: opening balances carried forward from the previous serial.'
+                    : 'New draft started — no previous serial found for opening balances.', false);
             });
             
             // --- ADD THIS NEW BLOCK FOR SETTINGS & COMPANIES ---
@@ -11490,7 +11569,7 @@ renderMainCommentsList(); // Clear comment list on new form
                 } else if (tabTarget) {
                     // The statement tabs no longer exist: every figure is edited
                     // in the Data Entry drawer, at the exact field clicked here.
-                    openDataEntry(DATA_ENTRY_SECTION_FOR[tabTarget] || 'statements', fieldTarget || null);
+                    openDataEntry(DATA_ENTRY_TAB_FOR[tabTarget] || 'statements', fieldTarget || null);
                 }
             });
             // --- END OF NEW EVENT LISTENER ---
@@ -11639,6 +11718,9 @@ renderMainCommentsList(); // Clear comment list on new form
 
             runAllCalculations();
             updateReviewTab();
+
+            // Corporate Section lands on Draft Management, with the last report pre-opened
+            setTimeout(() => { if (typeof applyCorporateLanding === 'function') applyCorporateLanding(); }, 700);
         }
         // --- END: New function ---
 
@@ -11719,6 +11801,7 @@ renderMainCommentsList(); // Clear comment list on new form
                     updateCompanySelector();
                 }
             }
+            window.openDraftManagementModal = openDraftManagementModal;
 
             function closeDraftManagementModal() {
                 if (draftManagementModal) {
@@ -12077,6 +12160,7 @@ renderMainCommentsList(); // Clear comment list on new form
                 loadCompanies();
                 loadFinalizedCorps();
                 loadCorporateHistory();
+                if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(true);
             }
         });
 
@@ -13237,6 +13321,254 @@ renderMainCommentsList(); // Clear comment list on new form
             const openAcc = document.getElementById('open-accruals-modal');
             if (openAcc) openAcc.addEventListener('click', openAccrualsBreakdownModal);
         })();
+
+        // ==========================================================
+        // VAT auto-fill — Sales & Purchases for the report period
+        // Total sales   = sales vouchers + zero-rated exports
+        // Total purchases = purchase vouchers + imports
+        // Capped at today when the period is not finished yet.
+        // ==========================================================
+        const VAT_UNLOCK_PASSWORD = 'abcd';
+        let vatSalesManual = false;
+        let vatPurchasesManual = false;
+        let vatSyncBusy = false;
+        let vatLastSyncKey = '';
+
+        const vatIsoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        function vatParseIsoDate(v) {
+            if (!v) return null;
+            const s = String(v);
+            const d = new Date(s + (s.length === 10 ? 'T00:00:00' : ''));
+            return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        function setVatSyncStatus(message, ok) {
+            const cls = ok ? 'form-field-note' : 'form-field-note text-rose-600 font-semibold';
+            const a = document.getElementById('vat-sync-status');
+            const b = document.getElementById('vat-sync-status-cos');
+            if (a) { a.className = cls; a.textContent = message; }
+            if (b) { b.className = cls; b.textContent = message; }
+        }
+
+        function applyVatLockUi() {
+            const salesEl = document.getElementById('pl-sales');
+            if (salesEl) salesEl.readOnly = !vatSalesManual;
+            const purEl = document.getElementById('cos-purchases');
+            if (purEl) purEl.readOnly = !vatPurchasesManual;
+
+            const paint = (id, manual) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = manual ? 'MANUAL' : 'AUTO';
+                el.style.background = manual ? '#fef3c7' : '';
+                el.style.color = manual ? '#92400e' : '';
+                el.style.borderColor = manual ? '#fcd34d' : '';
+            };
+            paint('vat-sync-sales-badge', vatSalesManual);
+            paint('vat-sync-purchases-badge', vatPurchasesManual);
+
+            const sb = document.getElementById('vat-sync-sales-btn');
+            if (sb) sb.textContent = vatSalesManual ? 'Re-sync' : 'Override';
+            const pb = document.getElementById('vat-sync-purchases-btn');
+            if (pb) pb.textContent = vatPurchasesManual ? 'Re-sync' : 'Override';
+        }
+
+        function unlockVatField(kind) {
+            const isManual = kind === 'sales' ? vatSalesManual : vatPurchasesManual;
+            const msg = isManual
+                ? 'Enter password to return this value to automatic VAT sync:'
+                : 'Enter password to edit this VAT-synced value:';
+            const pwd = prompt(msg);
+            if (pwd === null) return;
+            if (pwd !== VAT_UNLOCK_PASSWORD) { alert('Incorrect password.'); return; }
+
+            if (kind === 'sales') vatSalesManual = !isManual;
+            else vatPurchasesManual = !isManual;
+
+            applyVatLockUi();
+
+            if (isManual) {
+                setVatSyncStatus('Returned to automatic VAT sync.', true);
+                syncVatPeriodValues(true);
+            } else {
+                setVatSyncStatus('Manual override enabled — this value will not be refreshed from VAT.', true);
+                const el = document.getElementById(kind === 'sales' ? 'pl-sales' : 'cos-purchases');
+                if (el) { el.readOnly = false; el.focus(); }
+            }
+        }
+
+        async function fetchVatPeriodTotals(companyName, startStr, endStr) {
+            if (!userId) return { ok: false, message: 'Sign in to sync with the VAT app.' };
+            if (!companyName) return { ok: false, message: 'Select a company first.' };
+            const start = vatParseIsoDate(startStr);
+            if (!start) return { ok: false, message: 'Set the report start date.' };
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let end = vatParseIsoDate(endStr) || today;
+            if (end > today) end = today; // period still running — fill up to today
+
+            const fetchCol = async (col) => {
+                const snap = await getDocs(query(collection(db, `users/${userId}/${col}`), where('branch', '==', companyName)));
+                return snap.docs.map(d => d.data());
+            };
+
+            let sales, purchases, imports, exportsV;
+            try {
+                [sales, purchases, imports, exportsV] = await Promise.all([
+                    fetchCol('salesVouchers'),
+                    fetchCol('purchaseVouchers'),
+                    fetchCol('importVouchers'),
+                    fetchCol('exportVouchers')
+                ]);
+            } catch (err) {
+                console.error('VAT sync read error:', err);
+                return { ok: false, message: 'Could not read VAT vouchers (check Firestore rules).' };
+            }
+
+            const inRange = (v) => {
+                const d = vatParseIsoDate(v.date);
+                return !!d && d >= start && d <= end;
+            };
+            const sum = (arr, field) => arr.reduce((acc, v) => acc + (inRange(v) ? (parseFloat(v[field]) || 0) : 0), 0);
+
+            const salesTotal = sum(sales, 'totalAmount') + sum(exportsV, 'totalAmount');
+            const purchasesTotal = sum(purchases, 'totalAmount') + sum(imports, 'totalAmount');
+
+            return { ok: true, sales: salesTotal, purchases: purchasesTotal, from: vatIsoOf(start), to: vatIsoOf(end) };
+        }
+
+        async function syncVatPeriodValues(force) {
+            if (vatSyncBusy) return;
+            vatSyncBusy = true;
+            try {
+                const companyName = (document.getElementById('company-name') || {}).value || '';
+                const startStr = (document.getElementById('report-start-date') || {}).value || '';
+                const endStr = (document.getElementById('report-end-date') || {}).value || '';
+                if (!companyName || !startStr) { applyVatLockUi(); return; }
+
+                const syncKey = companyName + '|' + startStr + '|' + endStr;
+                if (!force && syncKey === vatLastSyncKey) { applyVatLockUi(); return; }
+                vatLastSyncKey = syncKey;
+
+                const totals = await fetchVatPeriodTotals(companyName, startStr, endStr);
+                if (!totals.ok) { setVatSyncStatus(totals.message, false); return; }
+
+                if (!vatSalesManual) setVal('pl-sales', Math.round(totals.sales));
+                if (!vatPurchasesManual) {
+                    costOfSalesData.purchases = Math.round(totals.purchases);
+                    const purEl = document.getElementById('cos-purchases');
+                    if (purEl) purEl.value = costOfSalesData.purchases;
+                }
+
+                runAllCalculations();
+                applyVatLockUi();
+
+                const period = (totals.from === totals.to) ? totals.from : (totals.from + ' → ' + totals.to);
+                setVatSyncStatus('VAT synced ' + period +
+                    ' · Sales ' + Math.round(totals.sales).toLocaleString() +
+                    ' · Purchases ' + Math.round(totals.purchases).toLocaleString(), true);
+            } catch (err) {
+                console.error('VAT sync failed:', err);
+                setVatSyncStatus('VAT sync failed.', false);
+            } finally {
+                vatSyncBusy = false;
+            }
+        }
+
+        // Latest earlier report (finalised or draft) for the company
+        function findPreviousReportForCompany(companyName, nextSerial) {
+            const key = companyNameKey(companyName || '');
+            if (!key) return null;
+            const serialNum = (s) => parseInt(String(s || '').replace(/\D/g, ''), 10) || 0;
+            const target = serialNum(nextSerial);
+            const pool = [];
+
+            (finalizedCorpsData || []).forEach(r => {
+                const fd = (r.data && r.data.formData) || {};
+                const name = r.companyName || fd['company-name'] || '';
+                if (companyNameKey(name) !== key) return;
+                pool.push({ serial: r.serialNumber || (r.data && r.data.serialNumber) || '', data: r.data });
+            });
+
+            (allSavedDraftsList || []).forEach(d => {
+                const data = d.data || d;
+                const fd = (data && data.formData) || {};
+                const name = fd['company-name'] || d.companyName || '';
+                if (companyNameKey(name) !== key) return;
+                pool.push({ serial: d.serialNumber || (data && data.serialNumber) || '', data });
+            });
+
+            if (!pool.length) return null;
+            const earlier = pool.filter(p => serialNum(p.serial) > 0 && serialNum(p.serial) < target);
+            const candidates = earlier.length ? earlier : pool;
+            candidates.sort((a, b) => serialNum(a.serial) - serialNum(b.serial));
+            return candidates[candidates.length - 1];
+        }
+
+        // Sync whenever the reporting period changes
+        ['report-start-date', 'report-end-date'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => syncVatPeriodValues());
+        });
+        applyVatLockUi();
+
+        // ==========================================================
+        // Landing behaviour — Draft Management + last opened report
+        // ==========================================================
+        let landingShownOnce = false;
+
+        const lastOpenedKey = () => `corp_last_opened_${userId || 'default'}`;
+
+        function rememberLastOpened(kind, id) {
+            if (!id) return;
+            try { localStorage.setItem(lastOpenedKey(), JSON.stringify({ kind, id })); } catch (_) {}
+        }
+
+        function getLastOpened() {
+            try {
+                const raw = localStorage.getItem(lastOpenedKey());
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return (parsed && parsed.id) ? parsed : null;
+            } catch (_) { return null; }
+        }
+
+        async function applyCorporateLanding(force) {
+            if (!document.body.classList.contains('corp-embedded')) return;
+            if (!force && landingShownOnce) return;
+            landingShownOnce = true;
+
+            // Landing page = Draft Management
+            if (typeof window.openDraftManagementModal === 'function') {
+                window.openDraftManagementModal();
+            }
+
+            // Pre-open the last draft / report in the background (no company default)
+            const last = getLastOpened();
+            if (!last || !last.id) return;
+
+            if (last.kind === 'draft') {
+                if (draftNameInput && draftNameInput.value === last.id) return;
+                await loadDraftByName(last.id, { preload: true });
+            } else if (last.kind === 'finalized') {
+                const report = (finalizedCorpsData || []).find(r => r.id === last.id);
+                if (report) loadFinalizedReport(last.id);
+            }
+
+            // Loading a finalised report closes the modal — reopen the landing page
+            if (typeof window.openDraftManagementModal === 'function') {
+                window.openDraftManagementModal();
+            }
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.origin !== window.location.origin) return;
+            if (e.data && e.data.type === 'corp-landing') {
+                applyCorporateLanding(true);
+            }
+        });
 
         // ==========================================================
         // Embedded "ALL ACTIONS" bridge (driven by the VAT App top bar)

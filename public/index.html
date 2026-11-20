@@ -4907,17 +4907,33 @@
                             if (fileHandling === 'save_file' && input.files.length > 0) {
                                 const file = input.files[0];
                                 
-                                if (file.size > MAX_FILE_SIZE) {
-                                    customAlert(`File "${file.name}" is too large. Maximum size is ${MAX_FILE_SIZE / 1024} KB.`, 'File Size Error');
+                                const gdriveReady = !!(window.VatGDrive && window.VatGDrive.isEnabled());
+                                const sizeLimit = gdriveReady ? window.VatGDrive.maxBytes() : MAX_FILE_SIZE;
+                                if (file.size > sizeLimit) {
+                                    const limitText = sizeLimit >= 1048576 ? (sizeLimit / 1048576) + ' MB' : Math.round(sizeLimit / 1024) + ' KB';
+                                    customAlert(`File "${file.name}" is too large. Maximum size is ${limitText}.`, 'File Size Error');
                                     throw new Error("File too large.");
                                 }
-                                
-                                const timestamp = new Date().getTime();
-                                const storageRef = ref(storage, `${path(collectionName)}/${timestamp}-${file.name}`);
-                                
-                                uploadPromises.push(uploadBytes(storageRef, file).then(snapshot => getDownloadURL(snapshot.ref)).then(url => {
-                                    data[input.name + 'Url'] = url;
-                                }));
+
+                                if (gdriveReady) {
+                                    // New documents go to the WhatAnAgent GDrive service, filed under
+                                    // VAT APP DOCUMENTS / <branch name> / <file>. Old files stay in Firebase.
+                                    uploadPromises.push(window.VatGDrive.upload(file, {
+                                        branch: window.selectedBranch,
+                                        collection: collectionName
+                                    }).then(result => {
+                                        data[input.name + 'Url'] = result.url;
+                                        data[input.name + 'Uuid'] = result.file_uuid;
+                                        data[input.name + 'Folder'] = result.folder || '';
+                                    }));
+                                } else {
+                                    const timestamp = new Date().getTime();
+                                    const storageRef = ref(storage, `${path(collectionName)}/${timestamp}-${file.name}`);
+
+                                    uploadPromises.push(uploadBytes(storageRef, file).then(snapshot => getDownloadURL(snapshot.ref)).then(url => {
+                                        data[input.name + 'Url'] = url;
+                                    }));
+                                }
                             } else if (fileHandling !== 'save_file') {
                                 delete data[input.name + 'Url'];
                             }
@@ -9404,7 +9420,7 @@
         };
 
         // --- Corporate Section (embedded CORP app) ---
-        const CORP_BUILD_VERSION = '2026-11-20-7';
+        const CORP_BUILD_VERSION = '2026-11-20-10';
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
             const overlay = document.getElementById('corporate-section-overlay');
@@ -9426,6 +9442,7 @@
                 frame.addEventListener('load', () => {
                     try { frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin); } catch (_) {}
                     try { frame.contentWindow.postMessage({ type: 'corp-get-state' }, window.location.origin); } catch (_) {}
+                    try { frame.contentWindow.postMessage({ type: 'corp-landing' }, window.location.origin); } catch (_) {}
                 });
             }
             _corpPrevActiveLink = document.querySelector('.nav-link.bg-gray-700, .submenu-link.bg-gray-700');
@@ -9441,6 +9458,7 @@
                 if (frame && frame.contentWindow) {
                     frame.contentWindow.postMessage({ type: 'corp-refresh' }, window.location.origin);
                     frame.contentWindow.postMessage({ type: 'corp-get-state' }, window.location.origin);
+                    frame.contentWindow.postMessage({ type: 'corp-landing' }, window.location.origin);
                 }
             } catch (_) {}
         };
@@ -11026,5 +11044,7 @@ window.filterQuickSwitchList = () => {
     quickSwitchIndex = -1; // Reset selection on search
 };
     </script>
+<!-- New voucher documents → WhatAnAgent GDrive service (settings: Settings → GDrive Documents) -->
+<script src="gdrive-docs.js" defer></script>
 </body>
 </html>
