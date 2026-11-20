@@ -230,6 +230,7 @@
       }
       save(next);
       setStatus(status, '✅ Saved in this browser. New voucher files will now go to Google Drive.', 'ok');
+      refreshIndicator();
     };
   }
 
@@ -256,11 +257,57 @@
     else menu.appendChild(link);
   }
 
+  // ── visible status: a missing key must never fail silently ───────────────
+  function bannerHidden() {
+    try { return sessionStorage.getItem('vat_gdrive_banner_hidden') === '1'; } catch (e) { return false; }
+  }
+
+  function refreshIndicator() {
+    var banner = document.getElementById('vat-gdrive-banner');
+
+    if (isEnabled() || bannerHidden()) {
+      if (banner) banner.remove();
+      return;
+    }
+    if (banner) return;
+    if (!document.body) return;
+
+    banner = el('div', 'position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:99998;' +
+      'display:flex;align-items:center;gap:10px;max-width:min(700px,94vw);padding:10px 12px;' +
+      'background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);' +
+      'font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#78350f');
+    banner.id = 'vat-gdrive-banner';
+
+    banner.appendChild(el('div', '', '<b>Google Drive is not connected in this browser.</b> ' +
+      'New voucher files are still being saved to Firebase Storage — connect Drive to send them to ' +
+      '<b>VAT APP DOCUMENTS</b> instead.'));
+
+    var connectBtn = el('button', 'margin-left:auto;padding:7px 11px;border-radius:9px;border:none;' +
+      'background:#4f46e5;color:#fff;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap', 'Connect Drive');
+    connectBtn.type = 'button';
+    connectBtn.onclick = function () { openSettings(); };
+    banner.appendChild(connectBtn);
+
+    var closeBtn = el('button', 'padding:4px 8px;border-radius:8px;border:1px solid #fcd34d;' +
+      'background:transparent;color:#92400e;font-size:12px;cursor:pointer', '✕');
+    closeBtn.type = 'button';
+    closeBtn.title = 'Hide for this session';
+    closeBtn.onclick = function () {
+      try { sessionStorage.setItem('vat_gdrive_banner_hidden', '1'); } catch (e) { /* ignore */ }
+      banner.remove();
+    };
+    banner.appendChild(closeBtn);
+
+    document.body.appendChild(banner);
+  }
+
   function boot() {
     injectMenuItem();
+    refreshIndicator();
     var tries = 0;
     var timer = setInterval(function () {
       injectMenuItem();
+      refreshIndicator();
       if (++tries > 20 || document.getElementById('gdrive-settings-link')) clearInterval(timer);
     }, 500);
   }
