@@ -94,7 +94,26 @@
       var message = (body && body.error) || ('Upload failed (HTTP ' + res.status + ')');
       throw new Error(message);
     }
+    toast('☁️ ' + file.name + ' saved to Google Drive — ' + (body.folder ? 'VAT APP DOCUMENTS / ' + body.folder : 'VAT APP DOCUMENTS'));
     return body;
+  }
+
+  /** Small bottom-centre confirmation, so an upload is visibly done. */
+  var toastTimer = null;
+  function toast(text) {
+    try {
+      var old = document.getElementById('vat-gdrive-toast');
+      if (old) old.remove();
+      var box = el('div', 'position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:99999;' +
+        'max-width:min(560px,92vw);padding:10px 14px;border-radius:10px;background:#0f172a;color:#e2f5ec;' +
+        'border:1px solid rgba(16,185,129,.55);box-shadow:0 12px 34px rgba(0,0,0,.3);' +
+        'font:12.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-weight:600;text-align:center');
+      box.id = 'vat-gdrive-toast';
+      box.textContent = text;                       // a file name is text, never markup
+      document.body.appendChild(box);
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { if (box.parentNode) box.remove(); }, 4500);
+    } catch (e) { /* a toast must never break the save */ }
   }
 
   /** Ask the service who this key belongs to (used by Test connection). */
