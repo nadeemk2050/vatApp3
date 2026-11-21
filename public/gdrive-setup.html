@@ -23,7 +23,7 @@
 <body>
 <div class="card">
   <h1>☁️ GDrive Documents</h1>
-  <p>Saving the connection to your account, so every browser and PC gets it after sign-in.</p>
+  <p>First the key is checked with the service. Only a key that works is saved — to this browser and to your account.</p>
   <div id="out" class="row">Checking the link…</div>
   <div id="next"></div>
 </div>
@@ -81,17 +81,8 @@
     return;
   }
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-  } catch (e) {
-    say('The browser refused to store the settings (private mode?).\n' +
-      'Paste them manually in Settings → GDrive Documents.', 'bad');
-    showOpen();
-    return;
-  }
-
-  // Save it in the signed-in user's own Firestore document, so other devices
-  // pick it up automatically. Optional: the local copy already works.
+  // Save in the signed-in user's own Firestore document, so other devices pick
+  // it up automatically. Never fatal: the local copy is enough.
   async function saveToAccount() {
     var appMod = await import(APP_SDK);
     var authMod = await import(AUTH_SDK);
@@ -140,37 +131,64 @@
     return { signedIn: true };
   }
 
-  say('Saved in this browser. Checking the connection…');
+  say('Checking the key with the service…');
 
-  var verify = fetch(cfg.base.replace(/\/+$/, '') + '/api/v1/gdrive/me', {
-    headers: { 'x-api-key': cfg.key, 'x-client-serial': cfg.serial }
+  fetch(cfg.base.replace(/\/+$/, '') + '/api/v1/gdrive/me', {
+    headers: { 'x-api-key': cfg.key, 'x-client-serial': cfg.serial },
+    cache: 'no-store'
   })
-    .then(function (res) { return res.json().then(function (body) { return { status: res.status, body: body }; }); })
-    .catch(function (e) { return { status: 0, body: null, error: e && e.message }; });
-
-  Promise.all([verify, saveToAccount().catch(function (e) { return { error: e && e.message }; })])
-    .then(function (results) {
-      var r = results[0] || {};
-      var acct = results[1] || {};
-
-      var accountNote = acct.signedIn
-        ? '\n✅ Also saved to your account — other devices will pick it up automatically after sign-in.'
-        : (acct.error
-          ? '\n⚠️ This browser only — the account copy failed (' + acct.error + ').'
-          : '\nℹ️ You are not signed in here, so this applies to this browser only.');
-
+    .then(function (res) {
+      return res.json()
+        .catch(function () { return {}; })
+        .then(function (body) { return { status: res.status, body: body }; });
+    })
+    .catch(function (e) { return { status: 0, body: null, error: (e && e.message) || String(e) }; })
+    .then(function (r) {
+      // ── verified: now, and only now, store it ──────────────────────────
       if (r.body && r.body.ok === true) {
         var c = r.body.client || {};
         var d = r.body.drive || {};
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+        } catch (e) {
+          say('Verified, but this browser refused to store it (private mode?). ' +
+            'Paste the key in Settings → GDrive Documents instead.', 'bad');
+          showOpen();
+          return;
+        }
+
         say('✅ Connected as "' + (c.name || 'client') + '" — folder: ' + (c.folder_name || '—') +
-          (d.email ? ' · drive: ' + d.email : '') + '.' + accountNote, 'ok');
-        showOpen('Open the VAT app');
-        setTimeout(function () { location.replace('/'); }, 2000);
-        return;
+          (d.email ? ' · drive: ' + d.email : '') + '.\nSaving to your account…', 'ok');
+
+        return saveToAccount()
+          .then(function (acct) {
+            var note = acct.signedIn
+              ? '\n✅ Saved to your account too — every browser and PC gets it after sign-in.'
+              : '\nℹ️ You are not signed in here, so this applies to this browser only. ' +
+                'Sign in, then open this link again to stamp it on your account.';
+            say('✅ Connected as "' + (c.name || 'client') + '" — folder: ' + (c.folder_name || '—') +
+              (d.email ? ' · drive: ' + d.email : '') + '.' + note, 'ok');
+          })
+          .catch(function (e) {
+            say('✅ Connected and saved in this browser. The account copy failed (' +
+              ((e && e.message) || e) + '), so other devices will still ask once.', 'ok');
+          })
+          .then(function () {
+            showOpen('Open the VAT app');
+            setTimeout(function () { location.replace('/'); }, 2200);
+          });
       }
 
+      // ── rejected: store nothing, so a bad key never spreads ────────────
       var why = (r.body && r.body.error) || (r.error ? ('network: ' + r.error) : ('HTTP ' + r.status));
-      say('Saved, but the service said: ' + why + '.' + accountNote, 'bad');
+      var advice = /invalid api key/i.test(why)
+        ? '\nNothing was saved. That key is not valid any more — it was probably replaced by the "New key" button. ' +
+          'Copy the current key from the service page (API clients → New key) and open a fresh setup link.'
+        : (r.error
+          ? '\nNothing was saved. Check the network and try again.'
+          : '\nNothing was saved.');
+      say('❌ ' + why + '.' + advice, 'bad');
       showOpen('Open the VAT app anyway');
     });
 })();

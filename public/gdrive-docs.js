@@ -229,6 +229,10 @@
 
     if (!res.ok || !body || body.ok !== true) {
       var message = (body && body.error) || ('Upload failed (HTTP ' + res.status + ')');
+      if (res.status === 401) {
+        message = 'The Google Drive key is no longer valid — it may have been replaced with a new one. ' +
+          'Open Settings → GDrive Documents and paste the current key (or use "Load from my account").';
+      }
       throw new Error(message);
     }
     toast('☁️ ' + file.name + ' saved to Google Drive — ' +
