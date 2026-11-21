@@ -968,6 +968,12 @@
                     <svg class="w-3.5 h-3.5 mr-1 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     <span>DATA ENTRY</span>
                 </button>
+                <!-- Fetch latest VAT totals Button -->
+                <button type="button" id="quick-fetch-vat-btn" class="corp-fetch-vat-btn inline-flex items-center px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg bg-teal-700 text-white hover:bg-teal-800 transition shadow-2xs cursor-pointer whitespace-nowrap" title="Fetch the latest sales, exports, purchases and imports from the VAT app">
+                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Fetch VAT Data</span>
+                </button>
+
                 <!-- Save Draft Button -->
                 <button type="button" id="quick-save-draft-btn" class="inline-flex items-center px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition shadow-2xs cursor-pointer whitespace-nowrap" title="Save Draft">
                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
@@ -7411,6 +7417,9 @@ const mainCommentList = document.getElementById('main-comment-list');
             const genTab = document.querySelector('.tab-btn[data-tab="general"]');
             openDataEntry('general');
 
+            // Pull the new period's VAT totals straight away
+            setTimeout(function () { syncVatPeriodValues(true); }, 0);
+
             alert(`✓ Started Next Year Draft: "${newDraftName}"\n\n• Serial: ${nextSerial}\n• Period: ${formatPeriodDisplay(document.getElementById('report-start-date').value, document.getElementById('report-end-date').value)}\n• Licence / Corporate Reg. / VAT TRN copied: ${copiedIdentity} of 3\n• Arabic name: ${arabicName || 'not translated'}\n• All prior closing balances fetched into Opening Balances!\n• Current year transactions reset to 0 for fresh entry.`);
         }
 
@@ -13628,8 +13637,62 @@ renderMainCommentsList(); // Clear comment list on new form
             };
         }
 
+        /**
+         * "Fetch Latest Data from VAT App" — clears every cache and pulls the
+         * current period totals again, then recalculates the whole report.
+         */
+        async function runVatFetchLatest() {
+            const buttons = document.querySelectorAll(".corp-fetch-vat-btn");
+            buttons.forEach(function (b) { b.disabled = true; b.classList.add("opacity-60"); });
+            try {
+                try { window.__vatVoucherCache = {}; } catch (e) { /* ignore */ }
+                vatLastSyncKey = null;
+                setVatSyncStatus("Fetching the latest sales, exports, purchases and imports from the VAT app…", true);
+
+                await syncVatPeriodValues(true);
+
+                runAllCalculations();
+                if (typeof updateReviewTab === "function") updateReviewTab();
+                if (typeof postCorpState === "function") postCorpState();
+
+                const statusEl = document.getElementById("vat-sync-status");
+                const text = statusEl ? String(statusEl.textContent || "") : "";
+                if (!/VAT synced|no dated vouchers|failed|Sign in|Select a company/i.test(text)) {
+                    setVatSyncStatus("VAT fetch finished — review the Sales and Purchases values.", true);
+                }
+            } catch (err) {
+                console.error("Fetch latest VAT data failed:", err);
+                setVatSyncStatus("Could not fetch VAT totals: " + ((err && err.message) || err), false);
+            } finally {
+                buttons.forEach(function (b) { b.disabled = false; b.classList.remove("opacity-60"); });
+            }
+        }
+
+        // Wire every "Fetch VAT Data" button that exists on the page.
+        (function wireFetchVatButtons() {
+            const attach = function () {
+                document.querySelectorAll(".corp-fetch-vat-btn").forEach(function (b) {
+                    if (b.dataset.fetchWired) return;
+                    b.dataset.fetchWired = "1";
+                    b.addEventListener("click", function () { runVatFetchLatest(); });
+                });
+            };
+            attach();
+            setTimeout(attach, 400);
+            setTimeout(attach, 1500);
+        })();
+
         async function syncVatPeriodValues(force) {
             if (force && window.__vatVoucherCache) window.__vatVoucherCache = {};
+            if (!window.__vatAutoSyncWired) {
+                window.__vatAutoSyncWired = true;
+                ["report-start-date", "report-end-date"].forEach(function (id) {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener("change", function () {
+                        setTimeout(function () { syncVatPeriodValues(true); }, 250);
+                    });
+                });
+            }
             if (vatSyncBusy) return;
             vatSyncBusy = true;
             try {
@@ -13799,6 +13862,7 @@ renderMainCommentsList(); // Clear comment list on new form
                 case 'save-draft': if (typeof saveDraft === 'function') saveDraft(); break;
                 case 'save-draft-as': openSaveDraftAsModal(); break;
                 case 'confirm-finalize': handleTopConfirmFinalize(); break;
+                case 'fetch-vat': runVatFetchLatest(); break;
                 case 'emaratax-bridge': openEmaraTaxBridgeModal(); break;
                 case 'compliance': openComplianceDashboardModal(); break;
                 case 'excel': if (generateExcelBtn) generateExcelBtn.click(); break;

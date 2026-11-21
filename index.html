@@ -2591,6 +2591,10 @@
             </div>
 
             <!-- ALL ACTIONS -->
+            <button type="button" id="corp-fetch-vat-btn" onclick="corpFetchVatData(this)" class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/30 border border-white/20 text-white text-xs font-bold transition" title="Fetch the latest sales and purchases from the VAT app into this corporate report">
+                <i class="fas fa-rotate text-[11px]"></i>
+                <span class="hidden md:inline whitespace-nowrap">Fetch VAT Data</span>
+            </button>
             <button type="button" onclick="corpAction('emaratax-bridge')" class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/30 border border-white/20 text-white text-xs font-bold transition" title="FTA EmaraTax Bridge">
                 <i class="fas fa-right-left text-[11px]"></i>
                 <span class="hidden md:inline whitespace-nowrap">FTA Bridge</span>
@@ -9420,7 +9424,7 @@
         };
 
         // --- Corporate Section (embedded CORP app) ---
-        const CORP_BUILD_VERSION = '2026-11-21-2';
+        const CORP_BUILD_VERSION = '2026-11-21-3';
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
             const overlay = document.getElementById('corporate-section-overlay');
@@ -9500,6 +9504,23 @@
             if (panel) panel.classList.add('hidden');
             const caret = document.getElementById('corp-all-actions-caret');
             if (caret) caret.classList.remove('rotate-180');
+        };
+
+        window.corpFetchVatData = (btn) => {
+            window.closeCorpActions();
+            const frame = document.getElementById("corporate-app-frame");
+            if (!frame || !frame.contentWindow) return;
+            const label = btn ? btn.querySelector("span") : null;
+            const original = label ? label.textContent : "";
+            if (btn) btn.disabled = true;
+            if (label) label.textContent = "Fetching…";
+            try {
+                frame.contentWindow.postMessage({ type: "corp-action", action: "fetch-vat" }, window.location.origin);
+            } catch (_) {}
+            setTimeout(() => {
+                if (btn) btn.disabled = false;
+                if (label && original) label.textContent = original;
+            }, 2600);
         };
 
         window.corpAction = (action) => {
