@@ -5004,7 +5004,7 @@ const mainCommentList = document.getElementById('main-comment-list');
             // Switch to General Information Tab
             const genTab = document.querySelector('.tab-btn[data-tab="general"]');
             openDataEntry('general');
-            setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(); }, 0);
+            setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(true); }, 0);
         }
 
         // --- Corporate Audit History Management ---
@@ -8309,7 +8309,7 @@ const mainCommentList = document.getElementById('main-comment-list');
                     openDataEntry('general');
                 }
                 // Refresh this period's sales & purchases from the VAT app
-                setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(); }, 0);
+                setTimeout(() => { if (typeof syncVatPeriodValues === 'function') syncVatPeriodValues(true); }, 0);
             } else {
                 showDraftMessage("Draft not found. It may have been deleted.", true);
             }
@@ -11370,7 +11370,7 @@ renderMainCommentsList(); // Clear comment list on new form
                 // Run all cals and update UI
                 runAllCalculations();
                 updateReviewTab();
-                syncVatPeriodValues();
+                syncVatPeriodValues(true);
 
                 showDraftMessage(prevReport
                     ? 'New draft started: opening balances carried forward from the previous serial.'
@@ -13479,6 +13479,15 @@ renderMainCommentsList(); // Clear comment list on new form
             return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
         }
 
+        /** Write one message under Sales and a different one under Purchases. */
+        function setVatSyncStatusSplit(salesMessage, purchasesMessage, ok) {
+            const cls = ok ? "form-field-note" : "form-field-note text-rose-600 font-semibold";
+            const a = document.getElementById("vat-sync-status");
+            const b = document.getElementById("vat-sync-status-cos");
+            if (a) { a.className = cls; a.textContent = salesMessage; }
+            if (b) { b.className = cls; b.textContent = purchasesMessage; }
+        }
+
         function setVatSyncStatus(message, ok) {
             const cls = ok ? 'form-field-note' : 'form-field-note text-rose-600 font-semibold';
             const a = document.getElementById('vat-sync-status');
@@ -13555,11 +13564,13 @@ renderMainCommentsList(); // Clear comment list on new form
             };
 
             // "al saham al ahmar" (VAT branch) must match "AL SAHAM AL AHMAR METALS SCRAP TR"
+            // Same branch as the VAT app dashboard: case and spacing are ignored,
+            // nothing else. Prefixes are NOT merged — "al saham" is a different
+            // branch from "AL SAHAM AL AHMAR METALS SCRAP TR" and must not be summed in.
             const branchMatches = (value, target) => {
                 const b = norm(value);
                 const t = norm(target);
-                if (!b || !t) return false;
-                return b === t || t.indexOf(b + " ") === 0 || b.indexOf(t + " ") === 0;
+                return !!b && !!t && b === t;
             };
 
             // The VAT app keeps vouchers at the top level (salesVouchers, purchaseVouchers, …);
@@ -13619,13 +13630,21 @@ renderMainCommentsList(); // Clear comment list on new form
 
             const sum = (arr, field) => arr.reduce((acc, v) => acc + (inRange(v) ? num(v[field]) : 0), 0);
 
-            const salesTotal = sum(sales, 'totalAmount') + sum(exportsV, 'totalAmount');
-            const purchasesTotal = sum(purchases, 'totalAmount') + sum(imports, 'totalAmount');
+            const salesBase = sum(sales, 'totalAmount');
+            const exportsValue = sum(exportsV, 'totalAmount');
+            const purchasesBase = sum(purchases, 'totalAmount');
+            const importsValue = sum(imports, 'totalAmount');
+            const salesTotal = salesBase + exportsValue;
+            const purchasesTotal = purchasesBase + importsValue;
 
             return {
                 ok: true,
                 sales: salesTotal,
                 purchases: purchasesTotal,
+                salesBase: salesBase,
+                exportsValue: exportsValue,
+                purchasesBase: purchasesBase,
+                importsValue: importsValue,
                 from: vatIsoOf(start),
                 to: vatIsoOf(end),
                 counts: {
@@ -13684,15 +13703,6 @@ renderMainCommentsList(); // Clear comment list on new form
 
         async function syncVatPeriodValues(force) {
             if (force && window.__vatVoucherCache) window.__vatVoucherCache = {};
-            if (!window.__vatAutoSyncWired) {
-                window.__vatAutoSyncWired = true;
-                ["report-start-date", "report-end-date"].forEach(function (id) {
-                    const el = document.getElementById(id);
-                    if (el) el.addEventListener("change", function () {
-                        setTimeout(function () { syncVatPeriodValues(true); }, 250);
-                    });
-                });
-            }
             if (vatSyncBusy) return;
             vatSyncBusy = true;
             try {
@@ -13722,15 +13732,22 @@ renderMainCommentsList(); // Clear comment list on new form
                 const rowsUsed = totals.counts
                     ? (totals.counts.sales + totals.counts.exports + totals.counts.purchases + totals.counts.imports)
                     : null;
-                let syncLine = 'VAT synced ' + period +
-                    ' · Sales ' + Math.round(totals.sales).toLocaleString() +
-                    ' · Purchases ' + Math.round(totals.purchases).toLocaleString();
+                const money = (n) => Math.round(Number(n) || 0).toLocaleString();
+
+                let salesLine = "VAT synced " + period +
+                    " · Sales " + money(totals.salesBase) + " + Exports " + money(totals.exportsValue) +
+                    " = " + money(totals.sales) +
+                    " (" + totals.counts.sales + " + " + totals.counts.exports + " vouchers)";
+                let purchaseLine = "Purchases " + money(totals.purchasesBase) + " + Imports " + money(totals.importsValue) +
+                    " = " + money(totals.purchases) +
+                    " (" + totals.counts.purchases + " + " + totals.counts.imports + " vouchers)";
+
                 if (rowsUsed === 0) {
-                    syncLine += ' · no dated vouchers matched this branch for that period';
-                } else if (rowsUsed) {
-                    syncLine += ' · from ' + rowsUsed + ' voucher(s)';
+                    const hint = " · no dated vouchers matched this branch for that period";
+                    salesLine = "VAT synced " + period + hint;
+                    purchaseLine = "No purchase or import vouchers matched this branch for that period.";
                 }
-                setVatSyncStatus(syncLine, true);
+                setVatSyncStatusSplit(salesLine, purchaseLine, true);
             } catch (err) {
                 console.error('VAT sync failed:', err);
                 setVatSyncStatus('VAT sync failed.', false);
@@ -13769,10 +13786,27 @@ renderMainCommentsList(); // Clear comment list on new form
             return candidates[candidates.length - 1];
         }
 
+        // Returning to this tab after adding vouchers in the VAT app must show the new totals.
+        (function autoSyncOnFocus() {
+            let lastRun = 0;
+            const refresh = function () {
+                if (document.hidden) return;
+                const now = Date.now();
+                if (now - lastRun < 15000) return;
+                lastRun = now;
+                const company = (document.getElementById("company-name") || {}).value;
+                const start = (document.getElementById("report-start-date") || {}).value;
+                if (!company || !start) return;
+                if (typeof syncVatPeriodValues === "function") syncVatPeriodValues(true);
+            };
+            window.addEventListener("focus", refresh);
+            document.addEventListener("visibilitychange", refresh);
+        })();
+
         // Sync whenever the reporting period changes
         ['report-start-date', 'report-end-date'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', () => syncVatPeriodValues());
+            if (el) el.addEventListener('change', () => syncVatPeriodValues(true));
         });
         applyVatLockUi();
 
