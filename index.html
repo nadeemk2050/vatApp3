@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Management Dashboard</title>
+    <title>CORPOVAT ELITE V1.1</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -255,6 +255,14 @@
     <!-- Authentication Container -->
     <div id="auth-container" class="flex items-center justify-center min-h-screen bg-gray-200">
         <div class="w-full max-w-md">
+            <!-- App identity shown on every auth screen -->
+            <div class="text-center mb-5">
+                <div class="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-2xl shadow-lg mb-3">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
+                <div class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.1</div>
+            </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
                 <div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-2" for="login-email">Email</label><input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="login-email" type="email" placeholder="Email"></div>
@@ -295,7 +303,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">My Company</h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.1</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
