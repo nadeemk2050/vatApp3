@@ -843,8 +843,8 @@
                     </svg>
                 </div>
                 <div class="flex-1">
-                    <div class="font-bold text-sm text-gray-900 group-hover:text-amber-800">Draft Management</div>
-                    <div class="text-xs text-gray-500 font-normal">Save, load drafts & switch corporate reports</div>
+                    <div class="font-bold text-sm text-gray-900 group-hover:text-amber-800">All Corporates Reports</div>
+                    <div class="text-xs text-gray-500 font-normal">Every corporate report, draft and confirmed, in one place</div>
                 </div>
             </button>
 
@@ -2389,7 +2389,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="modal-title text-xl font-bold text-gray-900">Draft Management</h3>
+                        <h3 class="modal-title text-xl font-bold text-gray-900">All Corporates Reports</h3>
                         <p class="text-xs text-gray-500">Save progress, load saved reports & switch corporate profiles anytime</p>
                     </div>
                 </div>
@@ -4984,7 +4984,7 @@ const mainCommentList = document.getElementById('main-comment-list');
             const nextSerialForCompany = generateNextCompanySerialNumber(company.name);
             const openDraftsForCompany = getDraftsForCompanySerial(company.name, nextSerialForCompany);
             if (openDraftsForCompany.length > 0) {
-                showDraftMessage(`Open draft already exists for ${nextSerialForCompany}: "${openDraftsForCompany[0].name}". Continue it from Draft Management.`, true);
+                showDraftMessage(`Open draft already exists for ${nextSerialForCompany}: "${openDraftsForCompany[0].name}". Continue it from All Corporates Reports.`, true);
             }
 
             // Re-render company list so active badge moves
@@ -13536,37 +13536,100 @@ renderMainCommentsList(); // Clear comment list on new form
             let end = vatParseIsoDate(endStr) || today;
             if (end > today) end = today; // period still running — fill up to today
 
+            const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+            const num = (v) => {
+                if (typeof v === "number") return isFinite(v) ? v : 0;
+                const cleaned = String(v == null ? "" : v).replace(/[^\d.\-]/g, "");
+                const n = parseFloat(cleaned);
+                return isNaN(n) ? 0 : n;
+            };
+
+            // "al saham al ahmar" (VAT branch) must match "AL SAHAM AL AHMAR METALS SCRAP TR"
+            const branchMatches = (value, target) => {
+                const b = norm(value);
+                const t = norm(target);
+                if (!b || !t) return false;
+                return b === t || t.indexOf(b + " ") === 0 || b.indexOf(t + " ") === 0;
+            };
+
+            // The VAT app keeps vouchers at the top level (salesVouchers, purchaseVouchers, …);
+            // older data lived under users/{uid}. Read whichever path actually has rows.
+            const voucherCache = (window.__vatVoucherCache = window.__vatVoucherCache || {});
+            const CACHE_TTL_MS = 5 * 60 * 1000;
+
             const fetchCol = async (col) => {
-                const snap = await getDocs(query(collection(db, `users/${userId}/${col}`), where('branch', '==', companyName)));
-                return snap.docs.map(d => d.data());
+                const cacheKey = col + "|" + norm(companyName);
+                const cached = voucherCache[cacheKey];
+                if (cached && (Date.now() - cached.at) < CACHE_TTL_MS) return cached.rows;
+
+                const paths = [`users/${userId}/${col}`, col];
+                let rows = [];
+
+                // 1. Indexed exact match, as the app has always tried.
+                for (const p of paths) {
+                    try {
+                        const snap = await getDocs(query(collection(db, p), where("branch", "==", companyName)));
+                        const exact = snap.docs.map(d => d.data());
+                        if (exact.length) { rows = exact; break; }
+                    } catch (e) { /* missing index or path — try the next shape */ }
+                }
+
+                // 2. Loose branch match over the whole collection.
+                if (!rows.length) {
+                    for (const p of paths) {
+                        try {
+                            const snap = await getDocs(collection(db, p));
+                            const matched = snap.docs.map(d => d.data()).filter(v => branchMatches(v.branch, companyName));
+                            if (matched.length) { rows = matched; break; }
+                        } catch (e) { /* ignore and try the next shape */ }
+                    }
+                }
+
+                voucherCache[cacheKey] = { at: Date.now(), rows };
+                return rows;
             };
 
             let sales, purchases, imports, exportsV;
             try {
                 [sales, purchases, imports, exportsV] = await Promise.all([
-                    fetchCol('salesVouchers'),
-                    fetchCol('purchaseVouchers'),
-                    fetchCol('importVouchers'),
-                    fetchCol('exportVouchers')
+                    fetchCol("salesVouchers"),
+                    fetchCol("purchaseVouchers"),
+                    fetchCol("importVouchers"),
+                    fetchCol("exportVouchers")
                 ]);
             } catch (err) {
-                console.error('VAT sync read error:', err);
-                return { ok: false, message: 'Could not read VAT vouchers (check Firestore rules).' };
+                console.error("VAT sync read error:", err);
+                return { ok: false, message: "Could not read VAT vouchers (check Firestore rules)." };
             }
 
             const inRange = (v) => {
                 const d = vatParseIsoDate(v.date);
                 return !!d && d >= start && d <= end;
             };
-            const sum = (arr, field) => arr.reduce((acc, v) => acc + (inRange(v) ? (parseFloat(v[field]) || 0) : 0), 0);
+
+            const sum = (arr, field) => arr.reduce((acc, v) => acc + (inRange(v) ? num(v[field]) : 0), 0);
 
             const salesTotal = sum(sales, 'totalAmount') + sum(exportsV, 'totalAmount');
             const purchasesTotal = sum(purchases, 'totalAmount') + sum(imports, 'totalAmount');
 
-            return { ok: true, sales: salesTotal, purchases: purchasesTotal, from: vatIsoOf(start), to: vatIsoOf(end) };
+            return {
+                ok: true,
+                sales: salesTotal,
+                purchases: purchasesTotal,
+                from: vatIsoOf(start),
+                to: vatIsoOf(end),
+                counts: {
+                    sales: sales.filter(inRange).length,
+                    exports: exportsV.filter(inRange).length,
+                    purchases: purchases.filter(inRange).length,
+                    imports: imports.filter(inRange).length
+                }
+            };
         }
 
         async function syncVatPeriodValues(force) {
+            if (force && window.__vatVoucherCache) window.__vatVoucherCache = {};
             if (vatSyncBusy) return;
             vatSyncBusy = true;
             try {
@@ -13593,9 +13656,18 @@ renderMainCommentsList(); // Clear comment list on new form
                 applyVatLockUi();
 
                 const period = (totals.from === totals.to) ? totals.from : (totals.from + ' → ' + totals.to);
-                setVatSyncStatus('VAT synced ' + period +
+                const rowsUsed = totals.counts
+                    ? (totals.counts.sales + totals.counts.exports + totals.counts.purchases + totals.counts.imports)
+                    : null;
+                let syncLine = 'VAT synced ' + period +
                     ' · Sales ' + Math.round(totals.sales).toLocaleString() +
-                    ' · Purchases ' + Math.round(totals.purchases).toLocaleString(), true);
+                    ' · Purchases ' + Math.round(totals.purchases).toLocaleString();
+                if (rowsUsed === 0) {
+                    syncLine += ' · no dated vouchers matched this branch for that period';
+                } else if (rowsUsed) {
+                    syncLine += ' · from ' + rowsUsed + ' voucher(s)';
+                }
+                setVatSyncStatus(syncLine, true);
             } catch (err) {
                 console.error('VAT sync failed:', err);
                 setVatSyncStatus('VAT sync failed.', false);
