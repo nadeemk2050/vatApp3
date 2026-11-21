@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.3</title>
+    <title>CORPOVAT ELITE V1.4</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -261,7 +261,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.3</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.4</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -303,7 +303,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.3</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.4</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -365,6 +365,9 @@
                         </a>
                         <a href="#" onclick="showForm('customers')" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
                             <i class="fas fa-users w-5 text-center mr-2 text-teal-300"></i>Manage Customers
+                        </a>
+                        <a href="#" onclick="openTeamUsersPage()" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
+                            <i class="fas fa-users-gear w-5 text-center mr-2 text-teal-300"></i>Add Team Users
                         </a>
                         <div class="border-t border-white/10 my-1"></div>
                         <a href="#" onclick="triggerBackup(false)" class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition">
@@ -2695,6 +2698,91 @@
             </div>
         </div>
         <iframe id="corporate-app-frame" class="w-full flex-1 min-h-0 border-0 bg-white" title="Corporate Section"></iframe>
+    </div>
+
+    <!-- Team Users — full-page bleeding view -->
+    <div id="team-users-overlay" class="hidden fixed inset-0 z-[101] bg-slate-100 flex-col">
+        <div class="flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-md shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" onclick="closeTeamUsersPage()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                <div class="min-w-0">
+                    <div class="font-semibold text-sm tracking-wide">Add Team Users</div>
+                    <div class="text-[11px] text-white/80 truncate">Staff who work in this workspace — name, mobile number and password</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="text-right leading-tight">
+                    <div class="text-[9px] uppercase tracking-wide text-white/70">Team members</div>
+                    <div id="team-users-count" class="text-sm font-bold">0</div>
+                </div>
+                <button type="button" onclick="loadTeamMembers(true)" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="max-w-6xl mx-auto space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="button" id="team-tab-add" onclick="showTeamPane('add')" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition bg-white text-slate-900 border-slate-900 shadow-sm">
+                        <i class="fas fa-user-plus"></i> Add Team Member
+                    </button>
+                    <button type="button" id="team-tab-list" onclick="showTeamPane('list')" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition bg-white/70 text-slate-600 border-slate-200 hover:bg-white">
+                        <i class="fas fa-users"></i> View Team Members (<span id="team-tab-count">0</span>)
+                    </button>
+                </div>
+
+                <!-- ADD / EDIT -->
+                <div id="team-pane-add" class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                    <h3 id="team-form-title" class="text-base font-bold text-gray-900 mb-1">Add team member</h3>
+                    <p class="text-xs text-gray-500 mb-4">The password is stored as a salted PBKDF2 hash — it can be reset here, but it can never be read back.</p>
+                    <form id="team-member-form" class="grid grid-cols-1 sm:grid-cols-3 gap-4" autocomplete="off">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">User name <span class="text-red-500">*</span></label>
+                            <input name="name" required maxlength="80" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="e.g. Ahmed Khan">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mobile number <span class="text-red-500">*</span></label>
+                            <input name="mobile" required maxlength="24" inputmode="tel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="e.g. +971 50 123 4567">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Password <span class="text-red-500">*</span></label>
+                            <div class="mt-1 flex gap-2">
+                                <input name="password" type="password" minlength="6" maxlength="72" autocomplete="new-password" class="flex-1 rounded-md border-gray-300 shadow-sm p-2">
+                                <button type="button" onclick="toggleTeamPassword()" class="px-2 rounded-md border border-gray-300 text-xs font-semibold text-gray-600 hover:bg-gray-50">show</button>
+                            </div>
+                        </div>
+                        <div class="sm:col-span-3 flex items-center gap-3 flex-wrap">
+                            <button type="submit" id="team-form-submit" class="btn-primary">Save member</button>
+                            <button type="button" onclick="resetTeamMemberForm()" class="px-3 py-2 text-sm font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">Clear</button>
+                            <button type="button" id="team-form-cancel" onclick="resetTeamMemberForm()" class="hidden px-3 py-2 text-sm font-semibold rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50">Cancel edit</button>
+                            <span id="team-form-msg" class="text-xs"></span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- LIST -->
+                <div id="team-pane-list" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hidden">
+                    <div class="flex items-center justify-between gap-3 p-4 border-b border-gray-100">
+                        <h3 class="text-base font-bold text-gray-900">Team members</h3>
+                        <input id="team-search" oninput="renderTeamMembers()" placeholder="Search name or mobile…" class="text-sm border border-gray-300 rounded-md px-3 py-1.5 w-64">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
+                                <tr>
+                                    <th class="text-left px-4 py-2 w-12">#</th>
+                                    <th class="text-left px-4 py-2">User name</th>
+                                    <th class="text-left px-4 py-2">Mobile</th>
+                                    <th class="text-left px-4 py-2">Added</th>
+                                    <th class="text-right px-4 py-2">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="team-members-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div id="team-empty" class="hidden p-6 text-center text-gray-500 text-sm">No team members yet — use “Add Team Member”.</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- VAT Returns Submitted — full-page bleeding view -->
@@ -9443,7 +9531,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -10533,6 +10621,222 @@ const CORP_BUILD_VERSION = APP_VERSION;
         window.toggleCustomerList = () => {
             document.getElementById('customer-list-container').classList.toggle('hidden');
         };
+
+        // ══════════════════════════════════════════════════════════════
+        // Team Users — add / view / edit / remove
+        // ══════════════════════════════════════════════════════════════
+        let teamMembers = [];
+        let editingTeamId = null;
+
+        const teamCollectionPath = () => `users/${window.currentUserId}/teamMembers`;
+        const teamEsc = (v) => String(v == null ? "" : v)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        const teamHex = (bytes) => Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+        async function teamHashPassword(password, existingSaltHex) {
+            const enc = new TextEncoder();
+            const salt = existingSaltHex
+                ? new Uint8Array(existingSaltHex.match(/.{2}/g).map((h) => parseInt(h, 16)))
+                : crypto.getRandomValues(new Uint8Array(16));
+            try {
+                const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
+                const bits = await crypto.subtle.deriveBits(
+                    { name: "PBKDF2", salt: salt, iterations: 120000, hash: "SHA-256" }, key, 256);
+                return { hash: teamHex(new Uint8Array(bits)), salt: teamHex(salt) };
+            } catch (e) {
+                throw new Error("Password hashing needs a secure (https) connection.");
+            }
+        }
+
+        window.openTeamUsersPage = () => {
+            const overlay = document.getElementById("team-users-overlay");
+            if (!overlay) return;
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
+            resetTeamMemberForm();
+            showTeamPane("add");
+            loadTeamMembers(true);
+        };
+
+        window.closeTeamUsersPage = () => {
+            const overlay = document.getElementById("team-users-overlay");
+            if (!overlay) return;
+            overlay.classList.add("hidden");
+            overlay.classList.remove("flex");
+        };
+
+        window.showTeamPane = (which) => {
+            const add = document.getElementById("team-pane-add");
+            const list = document.getElementById("team-pane-list");
+            const addBtn = document.getElementById("team-tab-add");
+            const listBtn = document.getElementById("team-tab-list");
+            const on = "bg-white text-slate-900 border-slate-900 shadow-sm";
+            const off = "bg-white/70 text-slate-600 border-slate-200 hover:bg-white";
+            if (add) add.classList.toggle("hidden", which !== "add");
+            if (list) list.classList.toggle("hidden", which !== "list");
+            if (addBtn) addBtn.className = "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition " + (which === "add" ? on : off);
+            if (listBtn) listBtn.className = "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition " + (which === "list" ? on : off);
+            if (which === "list") renderTeamMembers();
+        };
+
+        window.loadTeamMembers = async (showSpinner) => {
+            if (!window.currentUserId) return;
+            const tbody = document.getElementById("team-members-tbody");
+            if (tbody && showSpinner) tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>';
+            try {
+                const snap = await getDocs(collection(db, teamCollectionPath()));
+                teamMembers = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+                teamMembers.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+            } catch (e) {
+                console.error("Team members load failed:", e);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Could not load team members.</td></tr>';
+                return;
+            }
+            const count = document.getElementById("team-users-count");
+            if (count) count.textContent = teamMembers.length;
+            const tabCount = document.getElementById("team-tab-count");
+            if (tabCount) tabCount.textContent = teamMembers.length;
+            renderTeamMembers();
+        };
+
+        window.renderTeamMembers = () => {
+            const tbody = document.getElementById("team-members-tbody");
+            const empty = document.getElementById("team-empty");
+            if (!tbody) return;
+            const term = String((document.getElementById("team-search") || {}).value || "").toLowerCase().trim();
+            const digits = term.replace(/\D/g, "");
+            const rows = teamMembers.filter((m) => !term ||
+                String(m.name || "").toLowerCase().includes(term) ||
+                (digits && String(m.mobile || "").replace(/\D/g, "").includes(digits)));
+            if (!rows.length) {
+                tbody.innerHTML = "";
+                if (empty) empty.classList.remove("hidden");
+                return;
+            }
+            if (empty) empty.classList.add("hidden");
+            tbody.innerHTML = rows.map((m, i) => {
+                const added = m.createdAt && typeof m.createdAt.toDate === "function"
+                    ? m.createdAt.toDate().toLocaleDateString()
+                    : (m.createdAtFormatted || "—");
+                return '<tr class="border-t border-gray-100 hover:bg-slate-50">'
+                    + '<td class="px-4 py-2 text-gray-400">' + (i + 1) + "</td>"
+                    + '<td class="px-4 py-2 font-semibold text-gray-800">' + teamEsc(m.name) + "</td>"
+                    + '<td class="px-4 py-2 font-mono text-gray-700">' + teamEsc(m.mobile) + "</td>"
+                    + '<td class="px-4 py-2 text-gray-500 text-xs">' + teamEsc(added) + "</td>"
+                    + '<td class="px-4 py-2 text-right whitespace-nowrap">'
+                    + '<button onclick="editTeamMember(\'' + m.id + '\')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 px-2">Edit</button>'
+                    + '<button onclick="removeTeamMember(\'' + m.id + '\')" class="text-xs font-bold text-red-600 hover:text-red-800 px-2">Remove</button>'
+                    + "</td></tr>";
+            }).join("");
+        };
+
+        window.resetTeamMemberForm = () => {
+            editingTeamId = null;
+            const form = document.getElementById("team-member-form");
+            if (form) form.reset();
+            const title = document.getElementById("team-form-title");
+            if (title) title.textContent = "Add team member";
+            const btn = document.getElementById("team-form-submit");
+            if (btn) btn.textContent = "Save member";
+            const cancel = document.getElementById("team-form-cancel");
+            if (cancel) cancel.classList.add("hidden");
+            const msg = document.getElementById("team-form-msg");
+            if (msg) { msg.textContent = ""; msg.className = "text-xs"; }
+            const pw = document.querySelector('#team-member-form [name="password"]');
+            if (pw) pw.type = "password";
+        };
+
+        window.toggleTeamPassword = () => {
+            const pw = document.querySelector('#team-member-form [name="password"]');
+            if (!pw) return;
+            pw.type = pw.type === "password" ? "text" : "password";
+        };
+
+        window.editTeamMember = (id) => {
+            const m = teamMembers.find((x) => x.id === id);
+            if (!m) return;
+            editingTeamId = id;
+            const form = document.getElementById("team-member-form");
+            if (!form) return;
+            form.elements["name"].value = m.name || "";
+            form.elements["mobile"].value = m.mobile || "";
+            form.elements["password"].value = "";
+            showTeamPane("add");
+            const title = document.getElementById("team-form-title");
+            if (title) title.textContent = "Edit team member";
+            const btn = document.getElementById("team-form-submit");
+            if (btn) btn.textContent = "Update member";
+            const cancel = document.getElementById("team-form-cancel");
+            if (cancel) cancel.classList.remove("hidden");
+            const msg = document.getElementById("team-form-msg");
+            if (msg) { msg.textContent = "Leave the password blank to keep the current one."; msg.className = "text-xs text-gray-500"; }
+        };
+
+        window.removeTeamMember = async (id) => {
+            const m = teamMembers.find((x) => x.id === id);
+            if (!m) return;
+            if (!confirm(`Remove team member "${m.name || m.mobile}"? This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(db, teamCollectionPath() + "/" + id));
+                teamMembers = teamMembers.filter((x) => x.id !== id);
+                const count = document.getElementById("team-users-count");
+                if (count) count.textContent = teamMembers.length;
+                const tabCount = document.getElementById("team-tab-count");
+                if (tabCount) tabCount.textContent = teamMembers.length;
+                renderTeamMembers();
+            } catch (e) {
+                console.error(e);
+                alert("Could not remove this member: " + ((e && e.message) || e));
+            }
+        };
+
+        // Wire the add/edit form once.
+        (function wireTeamMemberForm() {
+            const form = document.getElementById("team-member-form");
+            if (!form) return;
+            form.addEventListener("submit", async (ev) => {
+                ev.preventDefault();
+                const msg = document.getElementById("team-form-msg");
+                const say = (text, bad) => { if (msg) { msg.textContent = text; msg.className = "text-xs " + (bad ? "text-red-600" : "text-emerald-700"); } };
+                const name = String(form.elements["name"].value || "").trim();
+                const mobile = String(form.elements["mobile"].value || "").trim();
+                const password = String(form.elements["password"].value || "");
+                if (!name) return say("Enter the user name.", true);
+                if (!/^[+0-9()\-\s]{6,24}$/.test(mobile)) return say("Enter a valid mobile number.", true);
+                if (!editingTeamId && password.length < 6) return say("Password must be at least 6 characters.", true);
+                if (editingTeamId && password && password.length < 6) return say("New password must be at least 6 characters.", true);
+                const mobileKey = mobile.replace(/\D/g, "");
+                const duplicate = teamMembers.find((x) => x.mobileKey === mobileKey && x.id !== editingTeamId);
+                if (duplicate) return say(`That mobile number is already used by ${duplicate.name || "another member"}.`, true);
+
+                const btn = document.getElementById("team-form-submit");
+                if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+                try {
+                    const payload = { name: name, mobile: mobile, mobileKey: mobileKey, updatedAt: Timestamp.now() };
+                    if (password) {
+                        const existing = editingTeamId ? teamMembers.find((x) => x.id === editingTeamId) : null;
+                        const hashed = await teamHashPassword(password, existing ? existing.salt : null);
+                        payload.passwordHash = hashed.hash;
+                        payload.salt = hashed.salt;
+                    }
+                    if (editingTeamId) {
+                        await setDoc(doc(db, teamCollectionPath() + "/" + editingTeamId), payload, { merge: true });
+                    } else {
+                        payload.createdAt = Timestamp.now();
+                        await addDoc(collection(db, teamCollectionPath()), payload);
+                    }
+                    resetTeamMemberForm();
+                    await loadTeamMembers(true);
+                    showTeamPane("list");
+                } catch (e) {
+                    console.error(e);
+                    say("Could not save: " + ((e && e.message) || e), true);
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = "Save member"; }
+                }
+            });
+        })();
 
         window.editBranch = (id) => {
             const branch = window.branchList.find(b => b.id === id);
