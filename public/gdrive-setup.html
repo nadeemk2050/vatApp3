@@ -8,15 +8,14 @@
   :root { color-scheme: light; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
          background:#0f172a; font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; padding:20px; }
-  .card { width:100%; max-width:520px; background:#fff; border-radius:16px; padding:26px;
+  .card { width:100%; max-width:540px; background:#fff; border-radius:16px; padding:26px;
           box-shadow:0 24px 60px rgba(0,0,0,.4); }
   h1 { margin:0 0 6px; font-size:19px; color:#0f172a; }
   p  { margin:0 0 10px; color:#475569; font-size:13px; }
   .row { margin-top:12px; padding:10px 12px; border-radius:10px; font-size:12.5px;
-         background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; }
+         background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; white-space:pre-line; }
   .ok  { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
   .bad { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
-  code { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
   a.btn { display:inline-block; margin-top:16px; padding:10px 16px; border-radius:10px; background:#4f46e5;
           color:#fff; text-decoration:none; font-weight:700; font-size:13px; }
 </style>
@@ -24,7 +23,7 @@
 <body>
 <div class="card">
   <h1>☁️ GDrive Documents</h1>
-  <p>This page saves the service connection for <b>this browser</b> and then opens the VAT app.</p>
+  <p>Saving the connection to your account, so every browser and PC gets it after sign-in.</p>
   <div id="out" class="row">Checking the link…</div>
   <div id="next"></div>
 </div>
@@ -33,12 +32,33 @@
   'use strict';
   var STORAGE_KEY = 'vat_gdrive_cfg_v1';
   var DEFAULT_BASE = 'https://whatanagent.duckdns.org';
+  var FIREBASE = {
+    apiKey: 'AIzaSyDYcZaB5QheUBRHjfXXKQpcflikamoH_Sc',
+    authDomain: 'vatapp-c80ce.firebaseapp.com',
+    projectId: 'vatapp-c80ce',
+    storageBucket: 'vatapp-c80ce.firebasestorage.app',
+    messagingSenderId: '853364981272',
+    appId: '1:853364981272:web:72989c32f7e1db4c378d6d'
+  };
+  var APP_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  var AUTH_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
   var out = document.getElementById('out');
   var next = document.getElementById('next');
 
   function say(text, kind) {
     out.textContent = text;
     out.className = 'row' + (kind ? ' ' + kind : '');
+  }
+
+  function showOpen(label) {
+    next.innerHTML = '';
+    var a = document.createElement('a');
+    a.className = 'btn';
+    a.href = '/';
+    a.textContent = label || 'Open the VAT app';
+    next.appendChild(a);
+    return a;
   }
 
   // The key travels in the URL fragment, which browsers never send to a server
@@ -55,44 +75,103 @@
   };
 
   if (!cfg.key || !cfg.serial) {
-    say('This link is missing the API key or the client serial. Open Settings → GDrive Documents in the app and paste them there instead.', 'bad');
-    next.innerHTML = '<a class="btn" href="/">Open the app</a>';
+    say('This link is missing the API key or the client serial.\n' +
+      'Open Settings → GDrive Documents in the app and paste them there instead.', 'bad');
+    showOpen();
     return;
   }
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   } catch (e) {
-    say('The browser refused to store the settings (private mode?). Paste them manually in Settings → GDrive Documents.', 'bad');
-    next.innerHTML = '<a class="btn" href="/">Open the app</a>';
+    say('The browser refused to store the settings (private mode?).\n' +
+      'Paste them manually in Settings → GDrive Documents.', 'bad');
+    showOpen();
     return;
   }
 
-  say('Saved. Checking the connection…', '');
+  // Save it in the signed-in user's own Firestore document, so other devices
+  // pick it up automatically. Optional: the local copy already works.
+  async function saveToAccount() {
+    var appMod = await import(APP_SDK);
+    var authMod = await import(AUTH_SDK);
+    var apps = appMod.getApps ? appMod.getApps() : [];
+    var app = apps.length ? apps[0] : appMod.initializeApp(FIREBASE);
+    var auth = authMod.getAuth(app);
 
-  fetch(cfg.base.replace(/\/+$/, '') + '/api/v1/gdrive/me', {
+    var user = auth.currentUser;
+    if (!user) {
+      user = await new Promise(function (resolve) {
+        var settled = false;
+        var unsub = authMod.onAuthStateChanged(auth, function (u) {
+          if (settled) return;
+          settled = true;
+          try { unsub(); } catch (e) { /* ignore */ }
+          resolve(u || null);
+        });
+        setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          try { unsub(); } catch (e) { /* ignore */ }
+          resolve(auth.currentUser || null);
+        }, 4000);
+      });
+    }
+    if (!user) return { signedIn: false };
+
+    var token = await user.getIdToken();
+    var url = 'https://firestore.googleapis.com/v1/projects/' + FIREBASE.projectId +
+      '/databases/(default)/documents/users/' + encodeURIComponent(user.uid) + '/appSettings/gdrive';
+    var res = await fetch(url, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          base: { stringValue: cfg.base },
+          key: { stringValue: cfg.key },
+          serial: { stringValue: cfg.serial },
+          maxMb: { integerValue: '25' },
+          updatedAt: { integerValue: String(Date.now()) },
+          updatedBy: { stringValue: String(user.email || user.uid) }
+        }
+      })
+    });
+    if (!res.ok) throw new Error('account save returned HTTP ' + res.status);
+    return { signedIn: true };
+  }
+
+  say('Saved in this browser. Checking the connection…');
+
+  var verify = fetch(cfg.base.replace(/\/+$/, '') + '/api/v1/gdrive/me', {
     headers: { 'x-api-key': cfg.key, 'x-client-serial': cfg.serial }
   })
     .then(function (res) { return res.json().then(function (body) { return { status: res.status, body: body }; }); })
-    .then(function (r) {
-      if (!r.body || r.body.ok !== true) {
-        say('Saved, but the service said: ' + ((r.body && r.body.error) || ('HTTP ' + r.status)) +
-          '. The key may have been revoked — you can replace it in Settings.', 'bad');
-        next.innerHTML = '<a class="btn" href="/">Open the app anyway</a>';
+    .catch(function (e) { return { status: 0, body: null, error: e && e.message }; });
+
+  Promise.all([verify, saveToAccount().catch(function (e) { return { error: e && e.message }; })])
+    .then(function (results) {
+      var r = results[0] || {};
+      var acct = results[1] || {};
+
+      var accountNote = acct.signedIn
+        ? '\n✅ Also saved to your account — other devices will pick it up automatically after sign-in.'
+        : (acct.error
+          ? '\n⚠️ This browser only — the account copy failed (' + acct.error + ').'
+          : '\nℹ️ You are not signed in here, so this applies to this browser only.');
+
+      if (r.body && r.body.ok === true) {
+        var c = r.body.client || {};
+        var d = r.body.drive || {};
+        say('✅ Connected as "' + (c.name || 'client') + '" — folder: ' + (c.folder_name || '—') +
+          (d.email ? ' · drive: ' + d.email : '') + '.' + accountNote, 'ok');
+        showOpen('Open the VAT app');
+        setTimeout(function () { location.replace('/'); }, 2000);
         return;
       }
-      var c = r.body.client || {};
-      var d = r.body.drive || {};
-      say('✅ Connected as "' + (c.name || 'client') + '" — folder: ' + (c.folder_name || '—') +
-        (d.email ? ' · drive: ' + d.email : '') +
-        '. Everything is ready: new voucher documents now go to Google Drive.', 'ok');
-      next.innerHTML = '<a class="btn" href="/">Open the VAT app</a>';
-      setTimeout(function () { location.replace('/'); }, 1500);
-    })
-    .catch(function (e) {
-      say('Saved in this browser, but the service could not be reached right now (' +
-        (e && e.message ? e.message : e) + '). It will work once the network is back.', 'bad');
-      next.innerHTML = '<a class="btn" href="/">Open the app</a>';
+
+      var why = (r.body && r.body.error) || (r.error ? ('network: ' + r.error) : ('HTTP ' + r.status));
+      say('Saved, but the service said: ' + why + '.' + accountNote, 'bad');
+      showOpen('Open the VAT app anyway');
     });
 })();
 </script>
