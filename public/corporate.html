@@ -7175,8 +7175,141 @@ const mainCommentList = document.getElementById('main-comment-list');
             return `${title} Next Year`;
         }
 
-        // --- Start New Draft for Next Year directly from Confirmed Report Card ---
-        function startNextYearDraftFromConfirmed(reportId) {
+        // --- Next-Year helpers: period, identity fields, Arabic name -------------
+        /**
+         * Read the previous reporting period from every place it has been stored
+         * in over time, move it forward exactly one year, and write it into the
+         * date inputs. Returns { start, end } or null when nothing was found.
+         */
+        function advanceDraftPeriodFromReport(prevReport) {
+            if (!prevReport) return null;
+            const data = prevReport.data || {};
+            const fd = data.formData || prevReport.formData || {};
+
+            const iso = (v) => {
+                const s = String(v || "").trim();
+                if (!/^\d{4}-\d{2}-\d{2}/.test(s)) return "";
+                return s.slice(0, 10);
+            };
+
+            const pairs = [
+                [prevReport.reportStartDate, prevReport.reportEndDate],
+                [data.reportStartDate, data.reportEndDate],
+                [prevReport.periodStart, prevReport.periodEnd],
+                [fd["report-start-date"], fd["report-end-date"]]
+            ];
+
+            let start = "";
+            let end = "";
+            for (const pair of pairs) {
+                if (iso(pair[0]) && iso(pair[1])) { start = iso(pair[0]); end = iso(pair[1]); break; }
+            }
+
+            // Last resort: parse the formatted label, e.g. "01 Mar 2024 – 28 Feb 2025"
+            if ((!start || !end) && prevReport.periodFormatted) {
+                const m = String(prevReport.periodFormatted)
+                    .match(/(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})\s*[\u2013\u2014-]\s*(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/);
+                if (m) {
+                    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+                    const sd = new Date(Date.UTC(+m[3], months[m[2].slice(0, 3).toLowerCase()], +m[1]));
+                    const ed = new Date(Date.UTC(+m[6], months[m[5].slice(0, 3).toLowerCase()], +m[4]));
+                    if (!isNaN(sd.getTime()) && !isNaN(ed.getTime())) {
+                        start = sd.toISOString().slice(0, 10);
+                        end = ed.toISOString().slice(0, 10);
+                    }
+                }
+            }
+
+            if (!start || !end) return null;
+
+            // Same day/month, exactly one year later (UTC keeps the date stable).
+            const sD = new Date(start + "T00:00:00Z");
+            const eD = new Date(end + "T00:00:00Z");
+            sD.setUTCFullYear(sD.getUTCFullYear() + 1);
+            eD.setUTCFullYear(eD.getUTCFullYear() + 1);
+
+            const newStart = sD.toISOString().slice(0, 10);
+            const newEnd = eD.toISOString().slice(0, 10);
+
+            const startInp = document.getElementById("report-start-date");
+            const endInp = document.getElementById("report-end-date");
+            if (startInp) { startInp.value = newStart; startInp.dispatchEvent(new Event("input", { bubbles: true })); }
+            if (endInp) { endInp.value = newEnd; endInp.dispatchEvent(new Event("change", { bubbles: true })); }
+            if (typeof syncCorporatePeriod === "function") syncCorporatePeriod();
+
+            return { start: newStart, end: newEnd };
+        }
+
+        /** Copy licence / corporate registration / VAT TRN from the previous report. */
+        function copyPreviousCorporateIdentity(prevReport) {
+            if (!prevReport) return 0;
+            const data = prevReport.data || {};
+            const fd = data.formData || prevReport.formData || {};
+            const pairs = [
+                ["license-reg-no", fd["license-reg-no"] || prevReport.licenseRegNo],
+                ["corporate-reg-no", fd["corporate-reg-no"] || prevReport.corporateRegNo],
+                ["vat-trn-no", fd["vat-trn-no"] || prevReport.vatTrnNo]
+            ];
+            let filled = 0;
+            pairs.forEach(function (pair) {
+                const el = document.getElementById(pair[0]);
+                const value = String(pair[1] == null ? "" : pair[1]).trim();
+                if (!el) return;
+                el.value = value;
+                el.dispatchEvent(new Event("input", { bubbles: true }));
+                el.dispatchEvent(new Event("change", { bubbles: true }));
+                if (value) filled += 1;
+            });
+            return filled;
+        }
+
+        /** English company name -> Arabic, via Google Translate (no key needed). */
+        async function translateCompanyNameToArabic(text) {
+            const clean = String(text || "").trim();
+            if (!clean) return "";
+            const url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=" + encodeURIComponent(clean);
+            try {
+                const controller = typeof AbortController === "function" ? new AbortController() : null;
+                const timer = controller ? setTimeout(function () { controller.abort(); }, 6000) : null;
+                const res = await fetch(url, controller ? { signal: controller.signal } : {});
+                if (timer) clearTimeout(timer);
+                if (!res.ok) return "";
+                const data = await res.json();
+                const segs = Array.isArray(data && data[0]) ? data[0] : [];
+                const out = segs.map(function (s) { return (s && s[0]) || ""; }).join("").trim();
+                return out;
+            } catch (e) {
+                console.warn("[CORP] Arabic translation failed:", e && e.message);
+                return "";
+            }
+        }
+
+        /** Fill the Arabic company name unless the company profile already has one. */
+        async function autoFillArabicCompanyName(prevReport) {
+            const input = document.getElementById("company-name-ar");
+            if (!input) return "";
+            if (String(input.value || "").trim()) return String(input.value).trim();
+
+            const data = (prevReport && prevReport.data) || {};
+            const fd = data.formData || (prevReport && prevReport.formData) || {};
+            const previousArabic = String(fd["company-name-ar"] || (prevReport && prevReport.companyNameAr) || "").trim();
+            const englishName = String(
+                (document.getElementById("company-name") && document.getElementById("company-name").value) ||
+                (prevReport && prevReport.companyName) || ""
+            ).trim();
+
+            const translated = await translateCompanyNameToArabic(englishName);
+            const arabic = translated || previousArabic;
+            if (arabic) {
+                input.value = arabic;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            return arabic;
+        }
+
+// --- Start New Draft for Next Year directly from Confirmed Report Card ---
+        async function startNextYearDraftFromConfirmed(reportId) {
             const prevReport = finalizedCorpsData.find(r => r.id === reportId);
             if (!prevReport || !prevReport.data) {
                 alert("Error: Confirmed report data not found.");
@@ -7241,22 +7374,16 @@ const mainCommentList = document.getElementById('main-comment-list');
             if (activeSerialText) activeSerialText.textContent = nextSerial;
 
             // 4. Advance 12-Month reporting period dates by 1 year
-            const prevStart = prevReport.periodStart || (prevReport.data && prevReport.data.formData && prevReport.data.formData['report-start-date']);
-            const prevEnd = prevReport.periodEnd || (prevReport.data && prevReport.data.formData && prevReport.data.formData['report-end-date']);
-            if (prevStart && prevEnd) {
-                const sD = new Date(prevStart);
-                const eD = new Date(prevEnd);
-                sD.setFullYear(sD.getFullYear() + 1);
-                eD.setFullYear(eD.getFullYear() + 1);
-                const pad = n => String(n).padStart(2, '0');
-                const newStartStr = `${sD.getFullYear()}-${pad(sD.getMonth() + 1)}-${pad(sD.getDate())}`;
-                const newEndStr = `${eD.getFullYear()}-${pad(eD.getMonth() + 1)}-${pad(eD.getDate())}`;
-                const startInp = document.getElementById('report-start-date');
-                const endInp = document.getElementById('report-end-date');
-                if (startInp) startInp.value = newStartStr;
-                if (endInp) endInp.value = newEndStr;
-                syncCorporatePeriod();
+            const advancedPeriod = advanceDraftPeriodFromReport(prevReport);
+            if (!advancedPeriod) {
+                console.warn("[CORP] Previous period could not be resolved; dates were left untouched.");
             }
+
+            // 4b. Carry the company identity fields across (licence / corporate reg. / VAT TRN)
+            const copiedIdentity = copyPreviousCorporateIdentity(prevReport);
+
+            // 4c. Arabic company name — translated, falling back to the previous Arabic value
+            const arabicName = await autoFillArabicCompanyName(prevReport);
 
             // 5. Apply full roll-forward of closing balances into opening balances
             applyRollForwardBalances(prevReport);
@@ -7284,7 +7411,7 @@ const mainCommentList = document.getElementById('main-comment-list');
             const genTab = document.querySelector('.tab-btn[data-tab="general"]');
             openDataEntry('general');
 
-            alert(`✓ Started Next Year Draft: "${newDraftName}"\n\n• Serial: ${nextSerial}\n• Period: ${formatPeriodDisplay(document.getElementById('report-start-date').value, document.getElementById('report-end-date').value)}\n• All prior closing balances fetched into Opening Balances!\n• Current year transactions reset to 0 for fresh entry.`);
+            alert(`✓ Started Next Year Draft: "${newDraftName}"\n\n• Serial: ${nextSerial}\n• Period: ${formatPeriodDisplay(document.getElementById('report-start-date').value, document.getElementById('report-end-date').value)}\n• Licence / Corporate Reg. / VAT TRN copied: ${copiedIdentity} of 3\n• Arabic name: ${arabicName || 'not translated'}\n• All prior closing balances fetched into Opening Balances!\n• Current year transactions reset to 0 for fresh entry.`);
         }
 
         async function revertFinalizedToDraft(reportId) {
