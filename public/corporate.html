@@ -3692,6 +3692,25 @@ const mainCommentList = document.getElementById('main-comment-list');
             }
         }
 
+        /**
+         * The first corporate period is whatever the licence says (11, 13 or 14
+         * months are normal). Once a company has a confirmed report, every later
+         * period is exactly 12 months.
+         */
+        function isFirstCorporatePeriodContext() {
+            try {
+                const company = (document.getElementById("company-name") || {}).value || "";
+                const key = companyNameKey(company);
+                if (!key) return false;
+                return !(finalizedCorpsData || []).some(function (r) {
+                    const name = r.companyName || (r.data && r.data.formData && r.data.formData["company-name"]) || "";
+                    return companyNameKey(name) === key;
+                });
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Helper: Check if period is strictly 12 months (not more, not less)
         function checkCorporatePeriod12Months(startDateStr, endDateStr) {
             if (!startDateStr || !endDateStr) {
@@ -3745,6 +3764,18 @@ const mainCommentList = document.getElementById('main-comment-list');
             const isDaysValid = diffDays >= 364 && diffDays <= 366;
 
             if (!isExactMatch && !isDaysValid) {
+                const firstPeriodDays = diffDays >= 120 && diffDays <= 450;
+                if (firstPeriodDays && isFirstCorporatePeriodContext()) {
+                    const months = diffDays / 30.4375;
+                    return {
+                        valid: true,
+                        firstPeriod: true,
+                        diffDays: diffDays,
+                        message: "First corporate period accepted: " + diffDays + " days (approx " +
+                            months.toFixed(1) + " months). Every following period will be exactly 12 months."
+                    };
+                }
+
                 const monthsApprox = (diffDays / 30.4375).toFixed(1);
                 const direction = diffDays < 364 ? 'less than 1 year' : 'more than 1 year';
                 const recommended = expMonthBoundaryStr || expMinus1Str;
@@ -3799,9 +3830,11 @@ const mainCommentList = document.getElementById('main-comment-list');
             if (periodValidationBox) {
                 if (check.valid) {
                     periodValidationBox.className = "flex items-center justify-between px-3 py-2 rounded-lg text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 transition-all";
-                    if (periodValidationMessage) periodValidationMessage.textContent = "Corporate period rule verified: Exactly 12 months (1 year) compliant.";
+                    if (periodValidationMessage) periodValidationMessage.textContent = check.firstPeriod
+                        ? check.message
+                        : "Corporate period rule verified: Exactly 12 months (1 year) compliant.";
                     if (periodDurationBadge) {
-                        periodDurationBadge.textContent = "12 Months (Valid)";
+                        periodDurationBadge.textContent = check.firstPeriod ? "First Period (Valid)" : "12 Months (Valid)";
                         periodDurationBadge.className = "font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px]";
                     }
                     if (periodDurationIndicator) {
@@ -7228,11 +7261,13 @@ const mainCommentList = document.getElementById('main-comment-list');
 
             if (!start || !end) return null;
 
-            // Same day/month, exactly one year later (UTC keeps the date stable).
-            const sD = new Date(start + "T00:00:00Z");
-            const eD = new Date(end + "T00:00:00Z");
-            sD.setUTCFullYear(sD.getUTCFullYear() + 1);
+            // The next period always starts the day after the previous one ended and
+            // runs exactly 12 months, so a 14-month first period is followed by 12.
+            const prevEndDate = new Date(end + "T00:00:00Z");
+            const sD = new Date(prevEndDate.getTime() + 86400000);
+            const eD = new Date(sD.getTime());
             eD.setUTCFullYear(eD.getUTCFullYear() + 1);
+            eD.setUTCDate(eD.getUTCDate() - 1);
 
             const newStart = sD.toISOString().slice(0, 10);
             const newEnd = eD.toISOString().slice(0, 10);

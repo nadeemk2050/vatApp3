@@ -9443,7 +9443,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -9644,14 +9644,17 @@ const CORP_BUILD_VERSION = APP_VERSION;
             return new Date(quarterEnd.getFullYear(), quarterEnd.getMonth() + 1, 28);
         };
 
-        function vatBuildRows(startDate, today) {
+        function vatBuildRows(startDate, today, firstPeriodEnd) {
             const rows = [];
             if (!startDate) return rows;
             let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
             const guard = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            // The first period is whatever the branch form says (4, 5 or 6 months for
+            // example); from then on the periods are ordinary 3-month quarters.
+            const firstEnd = firstPeriodEnd ? new Date(firstPeriodEnd.getFullYear(), firstPeriodEnd.getMonth(), firstPeriodEnd.getDate()) : null;
             for (let i = 0; i < 200; i++) {
                 const start = new Date(cursor);
-                const end = vatQuarterEnd(start);
+                const end = (i === 0 && firstEnd && firstEnd > start) ? new Date(firstEnd) : vatQuarterEnd(start);
                 rows.push({ start, end, running: guard >= start && guard <= end });
                 if (start > guard) break;
                 cursor = new Date(end);
@@ -9949,7 +9952,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
                 startDate = dates[0] || new Date();
             }
 
-            VAT_RETURNS_STATE.rows = vatBuildRows(startDate, new Date());
+            VAT_RETURNS_STATE.rows = vatBuildRows(startDate, new Date(), vatParseDate(branch.vatFilingPeriodEnd));
             vatRenderTable();
         }
 
@@ -10503,10 +10506,16 @@ const CORP_BUILD_VERSION = APP_VERSION;
             const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const quarters = [];
             let qStart = new Date(start);
+            const enteredFirstEnd = endEl.value ? new Date(endEl.value + "T00:00:00") : null;
             for (let i = 0; i < 4; i++) {
-                const qEnd = new Date(qStart);
-                qEnd.setMonth(qEnd.getMonth() + 3);
-                qEnd.setDate(qEnd.getDate() - 1);
+                let qEnd;
+                if (i === 0 && enteredFirstEnd && !isNaN(enteredFirstEnd.getTime()) && enteredFirstEnd > qStart) {
+                    qEnd = new Date(enteredFirstEnd);   // first period exactly as entered
+                } else {
+                    qEnd = new Date(qStart);
+                    qEnd.setMonth(qEnd.getMonth() + 3);
+                    qEnd.setDate(qEnd.getDate() - 1);
+                }
                 quarters.push({ label: `Q${i + 1}`, start: fmt(qStart), end: fmt(qEnd) });
                 qStart = new Date(qEnd);
                 qStart.setDate(qStart.getDate() + 1);
