@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.12</title>
+    <title>CORPOVAT ELITE V1.13</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -264,6 +264,10 @@
             transition: background .15s ease;
         }
         .voucher-card .file-pick-btn:hover { background: #e0e7ff; }
+        .voucher-card .voucher-audit {
+            margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #eef2f7;
+            font-size: 0.72rem; color: #64748b; line-height: 1.6;
+        }
         .voucher-card .file-pick-name {
             font-size: 0.8rem; color: #64748b;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -357,7 +361,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.12</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.13</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -382,6 +386,33 @@
         </div>
     </div>
 
+    <!-- Team member login (second gate, only when the account has team users) -->
+    <div id="team-login-container" class="hidden items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div class="w-full max-w-md px-4">
+            <div class="text-center mb-5">
+                <div class="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-2xl shadow-lg mb-3">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-white">Team Login</h1>
+                <p class="mt-1 text-xs text-slate-300">Choose who is using the app. Everything you save will be recorded under this name.</p>
+            </div>
+            <form id="team-login-form" class="bg-white shadow-xl rounded-xl px-7 py-6 space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide" for="team-login-name">User Name</label>
+                    <input id="team-login-name" type="text" autocomplete="username" placeholder="Your name" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide" for="team-login-password">Password</label>
+                    <input id="team-login-password" type="password" autocomplete="current-password" placeholder="Password" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div id="team-login-msg" class="text-xs text-red-600"></div>
+                <button type="submit" id="team-login-btn" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold py-2.5 rounded-lg">Continue</button>
+                <button type="button" onclick="teamLoginSignOut()" class="w-full text-xs font-semibold text-slate-500 hover:text-slate-700">Sign out</button>
+            </form>
+            <p class="mt-4 text-center text-[11px] text-slate-400">Team members are managed in Settings &rarr; Add Team Users.</p>
+        </div>
+    </div>
+
     <!-- Main App Container (hidden by default) -->
     <div id="main-app" class="hidden h-screen bg-gray-200">
         <!-- Sidebar Overlay for mobile -->
@@ -399,7 +430,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.12</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.13</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -438,6 +469,7 @@
                         </div>
                     </div>
                     <a href="#" onclick="showForm('partyLedgerList')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-user-friends w-6 text-center"></i><span class="ml-4">Party Ledgers</span></a>
+                    <a href="#" onclick="showForm('logHistory')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-clock-rotate-left w-6 text-center"></i><span class="ml-4">Log History</span></a>
                     <a href="#" onclick="showForm('worksheet')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700">
                         <i class="fas fa-sticky-note w-6 text-center"></i>
                         <span class="ml-4">Rough Worksheet</span>
@@ -480,6 +512,7 @@
                         <i class="fas fa-user-circle text-2xl text-emerald-300 shrink-0"></i>
                         <div class="min-w-0 flex-1">
                             <div id="user-email" class="text-xs font-medium text-gray-200 truncate">—</div>
+                            <div id="current-actor" class="text-[10px] font-bold uppercase tracking-wide text-emerald-300/90">Owner</div>
                             <button id="logout-btn" class="text-[11px] text-red-300 hover:text-red-200">Logout</button>
                         </div>
                     </div>
@@ -758,6 +791,45 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="logHistory-content" class="hidden bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800">Log History</h2>
+                                    <p class="text-sm text-gray-600">Every create, update, delete, login and import recorded for this account.</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="loadActivityLogs(true)" class="px-3 py-2 text-sm font-bold bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                                    <button onclick="exportActivityLogsCsv()" class="px-3 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"><i class="fas fa-file-csv mr-1"></i>Export CSV</button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-end gap-3 mb-4">
+                                <div><label class="block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">From</label><input type="date" id="log-filter-from" onchange="renderActivityLogs()" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"></div>
+                                <div><label class="block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">To</label><input type="date" id="log-filter-to" onchange="renderActivityLogs()" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"></div>
+                                <div><label class="block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">Member</label><select id="log-filter-member" onchange="renderActivityLogs()" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"><option value="">All members</option></select></div>
+                                <div><label class="block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">Action</label><select id="log-filter-action" onchange="renderActivityLogs()" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"><option value="">All actions</option><option value="create">Create</option><option value="update">Update</option><option value="delete">Delete</option><option value="login">Login</option><option value="import">Import</option><option value="backup">Backup</option><option value="restore">Restore</option></select></div>
+                                <div class="flex-1 min-w-[180px]"><label class="block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">Search</label><input type="text" id="log-filter-search" oninput="renderActivityLogs()" placeholder="Reference, party, details…" class="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"></div>
+                            </div>
+                            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
+                                        <tr>
+                                            <th class="text-left px-3 py-2 w-10">#</th>
+                                            <th class="text-left px-3 py-2">Date &amp; Time</th>
+                                            <th class="text-left px-3 py-2">Member</th>
+                                            <th class="text-left px-3 py-2">Action</th>
+                                            <th class="text-left px-3 py-2">Entity</th>
+                                            <th class="text-left px-3 py-2">Reference</th>
+                                            <th class="text-left px-3 py-2">Branch</th>
+                                            <th class="text-left px-3 py-2">Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="log-history-tbody"></tbody>
+                                </table>
+                            </div>
+                            <div id="log-history-empty" class="hidden p-6 text-center text-gray-500 text-sm">No activity recorded yet.</div>
+                            <p id="log-history-count" class="mt-2 text-xs text-gray-500"></p>
+                        </div>
+
                         <div id="branches-content" class="hidden bg-white p-8 rounded-lg shadow-md">
                             <h2 class="text-2xl font-bold text-gray-800 mb-2">Manage Branches</h2>
                             <p class="text-sm text-gray-600 mb-6">These company/branch names are the official names used in the <strong>Corporate Section</strong>. Add, rename or edit a branch here and it appears there automatically.</p>
@@ -3132,7 +3204,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, doc, deleteDoc, updateDoc, getDoc, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, query, where, orderBy, limit, onSnapshot, getDocs, Timestamp, doc, deleteDoc, updateDoc, getDoc, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
         // --- Global storage for ledger data ---
@@ -3345,6 +3417,7 @@
             promptForPassword(async () => {
                 try {
                     await deleteDoc(doc(db, `users/${window.currentUserId}/branches`, id));
+                    window.logActivity({ action: 'delete', entityType: 'Branch', entity: 'branches', ref: id, detail: 'Branch removed', docId: id });
                     customAlert('Branch removed.', 'Success');
                 } catch (error) {
                     console.error("Error removing branch:", error);
@@ -3357,6 +3430,7 @@
             promptForPassword(async () => {
                 try {
                     await deleteDoc(doc(db, `users/${window.currentUserId}/customers`, id));
+                    window.logActivity({ action: 'delete', entityType: 'Customer', entity: 'customers', ref: id, detail: 'Customer removed', docId: id });
                     customAlert('Customer removed.', 'Success');
                 } catch (error) {
                     console.error("Error removing customer:", error);
@@ -3396,6 +3470,15 @@
                     }
 
                     await deleteDoc(doc(db, path(collectionName), id));
+                    window.logActivity({
+                        action: 'delete',
+                        entityType: collectionName === 'vatRefunds' ? 'VAT Refund' : 'Voucher',
+                        entity: collectionName,
+                        ref: id,
+                        branch: window.selectedBranch || '',
+                        detail: 'Deleted voucher ' + id,
+                        docId: id
+                    });
                     customAlert(successfulMessage, 'Success');
                     
                 } catch (error) {
@@ -3543,6 +3626,24 @@
                     toggleFileUpload(idPrefix);
                 });
 
+
+                const auditEl = document.getElementById(`${formPrefix}-audit`);
+                if (auditEl) {
+                    const fmtTs = (ts) => {
+                        try { return ts && typeof ts.toDate === 'function' ? ts.toDate().toLocaleString() : ''; } catch (e) { return ''; }
+                    };
+                    const createdBy = data.createdBy || '—';
+                    const createdOn = fmtTs(data.createdAt);
+                    const updatedBy = data.updatedBy || '';
+                    const updatedOn = fmtTs(data.updatedAt);
+                    const parts = [];
+                    parts.push('Added by <b>' + teamEsc(createdBy) + '</b>' + (createdOn ? ' on ' + teamEsc(createdOn) : ''));
+                    if (updatedBy || updatedOn) {
+                        parts.push('Last updated by <b>' + teamEsc(updatedBy || '—') + '</b>' + (updatedOn ? ' on ' + teamEsc(updatedOn) : ''));
+                    }
+                    auditEl.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+                    auditEl.classList.remove('hidden');
+                }
 
                 if (formPrefix === 'sales' || formPrefix === 'purchase') {
                      window.calculateVAT(formPrefix);
@@ -3750,19 +3851,133 @@
         
         let activeDashboard = 'mainDashboard'; 
 
-        onAuthStateChanged(auth, user => {
+        const TEAM_UNLOCK_KEY = (uid) => 'vat_team_unlock_' + (uid || '');
+
+        const readTeamUnlock = (uid) => {
+            try {
+                const raw = sessionStorage.getItem(TEAM_UNLOCK_KEY(uid));
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) { return null; }
+        };
+
+        const saveTeamUnlock = (uid, member) => {
+            try { sessionStorage.setItem(TEAM_UNLOCK_KEY(uid), JSON.stringify(member)); } catch (e) {}
+        };
+
+        const clearTeamUnlock = (uid) => {
+            try { sessionStorage.removeItem(TEAM_UNLOCK_KEY(uid)); } catch (e) {}
+        };
+
+        const enterApp = () => {
+            document.getElementById('auth-container').classList.add('hidden');
+            const gateEl = document.getElementById('team-login-container');
+            if (gateEl) { gateEl.classList.add('hidden'); gateEl.classList.remove('flex'); }
+            document.getElementById('main-app').classList.remove('hidden');
+            const actorEl = document.getElementById('current-actor');
+            if (actorEl) {
+                actorEl.textContent = window.currentTeamMember ? ('Team: ' + window.currentTeamMember.name) : 'Owner';
+            }
+            initializeAppFunctions();
+        };
+
+        const loadTeamGateMembers = async (uid) => {
+            try {
+                const snap = await getDocs(collection(db, `users/${uid}/teamMembers`));
+                return snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+            } catch (e) {
+                console.error('Team gate load failed:', e);
+                return [];
+            }
+        };
+
+        const showTeamGate = (members) => {
+            window.teamGateMembers = members;
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('auth-container').classList.add('hidden');
+            const gateEl = document.getElementById('team-login-container');
+            if (gateEl) { gateEl.classList.remove('hidden'); gateEl.classList.add('flex'); }
+            const nameInput = document.getElementById('team-login-name');
+            const pwInput = document.getElementById('team-login-password');
+            const msg = document.getElementById('team-login-msg');
+            if (nameInput) nameInput.value = '';
+            if (pwInput) pwInput.value = '';
+            if (msg) msg.textContent = '';
+            setTimeout(() => { if (nameInput) nameInput.focus(); }, 60);
+        };
+
+        onAuthStateChanged(auth, async user => {
             const authContainer = document.getElementById('auth-container');
             const mainAppContainer = document.getElementById('main-app');
+            const teamGate = document.getElementById('team-login-container');
             if (user) {
                 window.currentUserId = user.uid;
                 document.getElementById('user-email').textContent = user.email;
-                authContainer.classList.add('hidden');
-                mainAppContainer.classList.remove('hidden');
-                initializeAppFunctions();
+                window.currentTeamMember = null;
+                const unlocked = readTeamUnlock(user.uid);
+                if (unlocked && unlocked.name) {
+                    window.currentTeamMember = unlocked;
+                    enterApp();
+                    return;
+                }
+                const members = await loadTeamGateMembers(user.uid);
+                if (members.length) {
+                    showTeamGate(members);
+                } else {
+                    authContainer.classList.add('hidden');
+                    enterApp();
+                }
             } else {
+                if (window.currentUserId) clearTeamUnlock(window.currentUserId);
                 window.currentUserId = null;
+                window.currentTeamMember = null;
                 authContainer.classList.remove('hidden');
                 mainAppContainer.classList.add('hidden');
+                if (teamGate) { teamGate.classList.add('hidden'); teamGate.classList.remove('flex'); }
+            }
+        });
+
+        window.teamLoginSignOut = () => signOut(auth);
+
+        document.getElementById('team-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('team-login-msg');
+            const btn = document.getElementById('team-login-btn');
+            const say = (text) => { if (msg) msg.textContent = text || ''; };
+            say('');
+            const rawName = String(document.getElementById('team-login-name').value || '').trim();
+            const password = String(document.getElementById('team-login-password').value || '');
+            if (!rawName) return say('Enter your user name.');
+            if (!password) return say('Enter your password.');
+            const members = window.teamGateMembers || [];
+            const digits = rawName.replace(/\D/g, '');
+            let member = members.find((m) => String(m.name || '').trim().toLowerCase() === rawName.toLowerCase());
+            if (!member && digits) {
+                member = members.find((m) => String(m.mobileKey || m.mobile || '').replace(/\D/g, '') === digits);
+            }
+            if (!member) return say('No team member with that name.');
+            if (!member.passwordHash || !member.salt) return say('This member has no password set. Ask the owner to set one.');
+            if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+            try {
+                const hashed = await teamHashPassword(password, member.salt);
+                if (hashed.hash !== member.passwordHash) {
+                    say('Incorrect password.');
+                    return;
+                }
+                window.currentTeamMember = { id: member.id, name: member.name, mobile: member.mobile || '' };
+                saveTeamUnlock(window.currentUserId, window.currentTeamMember);
+                await window.logActivity({
+                    action: 'login',
+                    entityType: 'Session',
+                    entity: 'teamMembers',
+                    ref: member.name,
+                    detail: 'Signed in as team member'
+                });
+                enterApp();
+            } catch (err) {
+                console.error(err);
+                say('Could not verify the password on this connection.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
             }
         });
 
@@ -3959,6 +4174,7 @@
                         <div class="flex justify-end">
                             <button type="submit" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700">${config.submitText}</button>
                         </div>
+                        <div id="${prefix}-audit" class="voucher-audit hidden"></div>
                     </form>
                 </div>
             `;
@@ -3970,6 +4186,8 @@
                 form.reset();
                 form.querySelectorAll('input[name="docId"], input[name="mirroredFromHidden"]').forEach(field => field.remove());
                 window.clearVoucherFileNotes(form);
+                const auditReset = document.getElementById(`${prefix}-audit`);
+                if (auditReset) auditReset.classList.add("hidden");
             }
             if (window.docsReturnState) {
                 window.returnToDocsAfterVoucher();
@@ -5548,6 +5766,14 @@
                         });
 
 
+                        const actingName = window.actorName();
+                        data.updatedBy = actingName;
+                        data.updatedAt = Timestamp.now();
+                        if (!docId) {
+                            data.createdBy = actingName;
+                            if (!data.createdAt) data.createdAt = Timestamp.now();
+                        }
+
                         if (formId === 'customer-form') {
                             data.contactNumbers = formData.getAll('contactNumber').filter(n => n);
                             delete data.contactNumber;
@@ -5744,6 +5970,26 @@
                             }
                         }
                         
+                        try {
+                            const isVoucherLog = collectionName.includes('Vouchers');
+                            const entityType = isVoucherLog ? 'Voucher'
+                                : collectionName === 'branches' ? 'Branch'
+                                : collectionName === 'customers' ? 'Customer'
+                                : collectionName === 'vatSubmissionRecords' ? 'VAT Submission'
+                                : collectionName === 'vatRefunds' ? 'VAT Refund' : 'Record';
+                            window.logActivity({
+                                action: docId ? 'update' : 'create',
+                                entityType: entityType,
+                                entity: collectionName,
+                                ref: data.ourRef || data.customerRef || data.name || data.legalName || '',
+                                branch: data.branch || data.name || window.selectedBranch || '',
+                                detail: isVoucherLog
+                                    ? ((data.partyName || data.customerName || '') + ' · ' + (data.totalAmount != null ? data.totalAmount : (data.amount != null ? data.amount : '')))
+                                    : (data.name || data.legalName || ''),
+                                docId: docId || ''
+                            });
+                        } catch (logErr) { console.warn('Log write failed:', logErr); }
+
                         if (replacedAssets.length) {
                             await window.VatFiles.removeReplaced(replacedAssets);
                             replacedAssets.length = 0;
@@ -9935,7 +10181,7 @@
                 'mainDashboard', 'branchDashboard', 'branches', 'customers', 
                 'sales', 'purchase', 'payment', 'receipt', 'import', 'export', 'vatSubmission', 'vatRefund',
                 'salesLedger', 'purchaseLedger', 'paymentLedger', 'receiptLedger', 'importLedger', 'exportLedger', 'vatRefundLedger',
-                'partyLedgerList', 'detailedPartyLedger', 'quarterlyReport', 'worksheet', 'importData'
+                'partyLedgerList', 'detailedPartyLedger', 'quarterlyReport', 'worksheet', 'importData', 'logHistory'
             ];
             
             allIds.forEach(id => {
@@ -9954,6 +10200,8 @@
                     form.reset();
                     form.querySelectorAll('input[name="docId"], input[name="mirroredFromHidden"]').forEach(field => field.remove());
                     window.clearVoucherFileNotes(form);
+                    const auditReset = document.getElementById(`${formName}-audit`);
+                    if (auditReset) auditReset.classList.add("hidden");
                     const submitButton = form.querySelector('button[type="submit"]');
                     if (submitButton) submitButton.textContent = voucherConfigs[formName].submitText;
                 }
@@ -9982,6 +10230,7 @@
                 window.fetchAndDisplayLedgerData(collectionName, `${formName}-table`, window.selectedBranch);
             } else if (formName === 'partyLedgerList') window.fetchPartyLedgerList();
             else if (formName === 'worksheet') window.loadWorksheet();
+            else if (formName === 'logHistory') window.loadActivityLogs(true);
             else if (window.currentLedgerListener) {
                 window.currentLedgerListener();
                 window.currentLedgerListener = null;
@@ -10017,7 +10266,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -11501,6 +11750,135 @@ const CORP_BUILD_VERSION = APP_VERSION;
         }
 
         // ══════════════════════════════════════════════════════════════
+        // Activity log (Log History page)
+        // ══════════════════════════════════════════════════════════════
+        window.actorName = () => (window.currentTeamMember && window.currentTeamMember.name) || 'Owner';
+
+        window.logActivity = async (entry) => {
+            if (!window.currentUserId) return;
+            try {
+                await addDoc(collection(db, `users/${window.currentUserId}/activityLogs`), {
+                    at: Timestamp.now(),
+                    actor: window.actorName(),
+                    actorId: (window.currentTeamMember && window.currentTeamMember.id) || 'owner',
+                    action: entry.action || 'update',
+                    entityType: entry.entityType || '',
+                    entity: entry.entity || '',
+                    ref: entry.ref || '',
+                    branch: entry.branch || '',
+                    detail: entry.detail || '',
+                    docId: entry.docId || ''
+                });
+            } catch (e) {
+                console.warn('Activity log failed:', e);
+            }
+        };
+
+        let activityLogsCache = [];
+        const activityTime = (ts) => {
+            try { return ts && typeof ts.toDate === 'function' ? ts.toDate() : (ts ? new Date(ts) : null); } catch (e) { return null; }
+        };
+        const activityFormatTime = (ts) => {
+            const d = activityTime(ts);
+            return d ? d.toLocaleString() : '—';
+        };
+
+        window.loadActivityLogs = async (showSpinner = true) => {
+            if (!window.currentUserId) return;
+            const tbody = document.getElementById('log-history-tbody');
+            if (tbody && showSpinner) tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-gray-500">Loading…</td></tr>';
+            try {
+                const snap = await getDocs(query(
+                    collection(db, `users/${window.currentUserId}/activityLogs`),
+                    orderBy('at', 'desc'),
+                    limit(1500)
+                ));
+                activityLogsCache = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+            } catch (e) {
+                console.error('Activity log load failed:', e);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-red-500">Could not load the log history.</td></tr>';
+                return;
+            }
+            window.renderActivityLogs();
+        };
+
+        window.renderActivityLogs = () => {
+            const tbody = document.getElementById('log-history-tbody');
+            const empty = document.getElementById('log-history-empty');
+            const countEl = document.getElementById('log-history-count');
+            const memberSel = document.getElementById('log-filter-member');
+            if (!tbody) return;
+
+            if (memberSel) {
+                const current = memberSel.value;
+                const names = Array.from(new Set(activityLogsCache.map((l) => l.actor || 'Owner'))).sort();
+                memberSel.innerHTML = '<option value="">All members</option>' + names.map((n) => '<option value="' + teamEsc(n) + '">' + teamEsc(n) + '</option>').join('');
+                memberSel.value = names.includes(current) ? current : '';
+            }
+
+            const from = (document.getElementById('log-filter-from') || {}).value || '';
+            const to = (document.getElementById('log-filter-to') || {}).value || '';
+            const member = (document.getElementById('log-filter-member') || {}).value || '';
+            const action = (document.getElementById('log-filter-action') || {}).value || '';
+            const term = String((document.getElementById('log-filter-search') || {}).value || '').toLowerCase().trim();
+
+            const rows = activityLogsCache.filter((l) => {
+                const d = activityTime(l.at);
+                const iso = d ? d.toISOString().slice(0, 10) : '';
+                if (from && iso && iso < from) return false;
+                if (to && iso && iso > to) return false;
+                if (member && (l.actor || 'Owner') !== member) return false;
+                if (action && (l.action || '') !== action) return false;
+                if (term) {
+                    const hay = [l.actor, l.action, l.entityType, l.entity, l.ref, l.branch, l.detail]
+                        .map((v) => String(v || '')).join(' ').toLowerCase();
+                    if (!hay.includes(term)) return false;
+                }
+                return true;
+            });
+
+            if (!rows.length) {
+                tbody.innerHTML = '';
+                if (empty) empty.classList.remove('hidden');
+            } else {
+                if (empty) empty.classList.add('hidden');
+                const badge = (a) => {
+                    const cls = a === 'create' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : a === 'update' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : a === 'delete' ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : a === 'login' ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        : 'bg-slate-50 text-slate-700 border-slate-200';
+                    return '<span class="px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wide ' + cls + '">' + teamEsc(a || '—') + '</span>';
+                };
+                tbody.innerHTML = rows.slice(0, 500).map((l, i) => '<tr class="border-t border-gray-100 hover:bg-slate-50 align-top">'
+                    + '<td class="px-3 py-2 text-gray-400">' + (i + 1) + '</td>'
+                    + '<td class="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">' + teamEsc(activityFormatTime(l.at)) + '</td>'
+                    + '<td class="px-3 py-2 text-gray-800 font-semibold">' + teamEsc(l.actor || 'Owner') + '</td>'
+                    + '<td class="px-3 py-2">' + badge(l.action) + '</td>'
+                    + '<td class="px-3 py-2 text-gray-700">' + teamEsc(l.entityType || '') + '</td>'
+                    + '<td class="px-3 py-2 font-mono text-xs text-gray-700">' + teamEsc(l.ref || '—') + '</td>'
+                    + '<td class="px-3 py-2 text-gray-700">' + teamEsc(l.branch || '—') + '</td>'
+                    + '<td class="px-3 py-2 text-gray-600">' + teamEsc(l.detail || '') + '</td>'
+                    + '</tr>').join('');
+            }
+            if (countEl) countEl.textContent = 'Showing ' + Math.min(rows.length, 500) + ' of ' + activityLogsCache.length + ' recorded events';
+        };
+
+        window.exportActivityLogsCsv = () => {
+            if (!activityLogsCache.length) { customAlert('There is nothing to export yet.', 'Log History'); return; }
+            const headers = ['Date & Time', 'Member', 'Action', 'Entity Type', 'Entity', 'Reference', 'Branch', 'Details'];
+            const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            const lines = [headers.map(esc).join(',')];
+            activityLogsCache.forEach((l) => {
+                lines.push([
+                    activityFormatTime(l.at), l.actor || 'Owner', l.action || '', l.entityType || '',
+                    l.entity || '', l.ref || '', l.branch || '', l.detail || ''
+                ].map(esc).join(','));
+            });
+            downloadBlob(new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), 'log_history_' + new Date().toISOString().slice(0, 10) + '.csv');
+        };
+
+        // ══════════════════════════════════════════════════════════════
         // Team Users — add / view / edit / remove
         // ══════════════════════════════════════════════════════════════
         let teamMembers = [];
@@ -11657,6 +12035,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             if (!confirm(`Remove team member "${m.name || m.mobile}"? This cannot be undone.`)) return;
             try {
                 await deleteDoc(doc(db, teamCollectionPath() + "/" + id));
+                window.logActivity({ action: 'delete', entityType: 'Team Member', entity: 'teamMembers', ref: m.name || m.mobile || id, detail: 'Team member removed', docId: id });
                 teamMembers = teamMembers.filter((x) => x.id !== id);
                 const count = document.getElementById("team-users-count");
                 if (count) count.textContent = teamMembers.length;
@@ -11704,6 +12083,13 @@ const CORP_BUILD_VERSION = APP_VERSION;
                         payload.createdAt = Timestamp.now();
                         await addDoc(collection(db, teamCollectionPath()), payload);
                     }
+                    window.logActivity({
+                        action: editingTeamId ? 'update' : 'create',
+                        entityType: 'Team Member',
+                        entity: 'teamMembers',
+                        ref: name,
+                        detail: 'Team member saved (' + mobile + ')'
+                    });
                     resetTeamMemberForm();
                     await loadTeamMembers(true);
                     showTeamPane("list");
@@ -11872,11 +12258,12 @@ const CORP_BUILD_VERSION = APP_VERSION;
         // --- START: BACKUP & RESTORE FUNCTIONS ---
 
         const COLLECTIONS_TO_BACKUP = [
-            'branches', 'customers', 'salesVouchers', 'purchaseVouchers', 
-            'paymentVouchers', 'receiptVouchers', 'importVouchers', 'exportVouchers', 
-            'vatSubmissionRecords', 'vatRefunds'
+            'branches', 'customers',
+            'salesVouchers', 'purchaseVouchers', 'paymentVouchers', 'receiptVouchers', 'importVouchers', 'exportVouchers',
+            'vatSubmissionRecords', 'vatRefunds', 'vatReturnSubmissions',
+            'importHistory', 'worksheets', 'teamMembers', 'activityLogs',
+            'app_data', 'appSettings'
         ];
-
         const downloadBlob = (blob, filename) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -11892,11 +12279,26 @@ const CORP_BUILD_VERSION = APP_VERSION;
             if (!window.currentUserId) throw new Error("No user is logged in.");
 
             const backupData = {};
+            const counts = {};
             for (const colName of COLLECTIONS_TO_BACKUP) {
-                const colRef = collection(db, path(colName));
-                const snapshot = await getDocs(colRef);
-                backupData[colName] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                try {
+                    const colRef = collection(db, path(colName));
+                    const snapshot = await getDocs(colRef);
+                    backupData[colName] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    counts[colName] = backupData[colName].length;
+                } catch (e) {
+                    console.warn('Backup skipped ' + colName + ':', e);
+                    backupData[colName] = [];
+                    counts[colName] = 0;
+                }
             }
+            backupData.__meta = {
+                exportedAt: new Date().toISOString(),
+                appVersion: APP_VERSION,
+                userId: window.currentUserId,
+                exportedBy: window.actorName(),
+                collections: counts
+            };
             return backupData;
         };
         
@@ -11932,6 +12334,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
                     const blob = new Blob([jsonData], { type: 'application/json' });
                     downloadBlob(blob, `vatapp_backup_data_${new Date().toISOString().split('T')[0]}.json`);
                     await customAlert("Data-only backup complete!", "Success");
+                    window.logActivity({ action: 'backup', entityType: 'Backup', entity: 'Data Only', detail: 'Data-only backup created' });
                 } else {
                     const zip = new JSZip();
                     zip.file(`backup_data.json`, jsonData);
@@ -11940,29 +12343,37 @@ const CORP_BUILD_VERSION = APP_VERSION;
                     
                     if (fileUrls.length > 0) {
                         const filesFolder = zip.folder("media_files");
+                        const mediaIndex = {};
                         
-                        const fetchPromises = fileUrls.map(async (url) => {
+                        const fetchPromises = fileUrls.map(async (url, idx) => {
                             try {
                                 const response = await fetch(url);
                                 if (!response.ok) {
                                     console.warn(`Failed to fetch file: ${url}`);
+                                    mediaIndex[url] = null;
                                     return;
                                 }
                                 const fileBlob = await response.blob();
                                 const urlPath = new URL(url).pathname;
-                                const filename = urlPath.substring(urlPath.lastIndexOf('/') + 1).split('?')[0];
-                                filesFolder.file(decodeURIComponent(filename), fileBlob);
+                                const rawName = decodeURIComponent(urlPath.substring(urlPath.lastIndexOf('/') + 1).split('?')[0]);
+                                const safeName = (rawName || ('file_' + idx)).replace(/[^A-Za-z0-9._-]+/g, '_');
+                                const unique = String(idx + 1).padStart(4, '0') + '_' + safeName;
+                                filesFolder.file(unique, fileBlob);
+                                mediaIndex[url] = 'media_files/' + unique;
                             } catch (err) {
                                 console.error(`Error fetching or adding file ${url}:`, err);
+                                mediaIndex[url] = null;
                             }
                         });
                         
                         await Promise.all(fetchPromises);
+                        zip.file("media_index.json", JSON.stringify(mediaIndex, null, 2));
                     }
                     
                     const zipBlob = await zip.generateAsync({ type: "blob" });
                     downloadBlob(zipBlob, `vatapp_backup_full_${new Date().toISOString().split('T')[0]}.zip`);
                     await customAlert("Full backup with media complete!", "Success");
+                    window.logActivity({ action: 'backup', entityType: 'Backup', entity: 'Data + Media', detail: 'Full backup with media created' });
                 }
             } catch (error) {
                 console.error("Backup failed:", error);
