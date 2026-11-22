@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.11</title>
+    <title>CORPOVAT ELITE V1.12</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -249,6 +249,25 @@
         .voucher-card input.bg-vat-mismatch { background: #ffe4e6 !important; border-color: #fda4af !important; }
         .voucher-card [data-docs-back] { display: none; }
         .voucher-card [data-docs-back].docs-back-on { display: inline-flex; align-items: center; }
+        .voucher-card .file-input-hidden {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+        }
+        .voucher-card .file-pick-row {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.45rem 0.6rem; border: 1px dashed #cbd5e1; border-radius: 10px;
+            background: #f8fafc;
+        }
+        .voucher-card .file-pick-btn {
+            background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 0.8rem;
+            padding: 0.45rem 0.9rem; border-radius: 8px; border: 0; cursor: pointer;
+            transition: background .15s ease;
+        }
+        .voucher-card .file-pick-btn:hover { background: #e0e7ff; }
+        .voucher-card .file-pick-name {
+            font-size: 0.8rem; color: #64748b;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
 
         /* Documents page: period switcher */
         #branch-docs-range-panel label {
@@ -338,7 +357,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.11</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.12</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -380,7 +399,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.11</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.12</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -419,7 +438,6 @@
                         </div>
                     </div>
                     <a href="#" onclick="showForm('partyLedgerList')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-user-friends w-6 text-center"></i><span class="ml-4">Party Ledgers</span></a>
-                    <a href="#" onclick="showForm('quarterlyReport')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700"><i class="fas fa-file-contract w-6 text-center"></i><span class="ml-4">Quarterly Report</span></a>
                     <a href="#" onclick="showForm('worksheet')" class="nav-link flex items-center px-4 py-3 mt-2 rounded-lg hover:bg-gray-700">
                         <i class="fas fa-sticky-note w-6 text-center"></i>
                         <span class="ml-4">Rough Worksheet</span>
@@ -3144,6 +3162,29 @@
         };
         const customAlert = window.customAlert;
 
+        window.customConfirm = (message, title = 'Please confirm') => {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-modal');
+                const input = document.getElementById('modal-input');
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-message').textContent = message;
+                input.classList.add('hidden');
+                const okButton = document.getElementById('modal-ok');
+                const cancelButton = document.getElementById('modal-cancel');
+                cancelButton.classList.remove('hidden');
+                cancelButton.textContent = 'No, different';
+                okButton.textContent = 'Yes, same';
+                const cleanup = () => {
+                    modal.style.display = 'none';
+                    cancelButton.textContent = 'Cancel';
+                    okButton.textContent = 'OK';
+                };
+                okButton.onclick = () => { cleanup(); resolve(true); };
+                cancelButton.onclick = () => { cleanup(); resolve(false); };
+                modal.style.display = 'flex';
+            });
+        };
+
         window.customPrompt = (message, title = 'Enter Value', options = {}) => {
             return new Promise(resolve => {
                 const { type = 'password', placeholder = 'Enter password' } = options;
@@ -3223,37 +3264,82 @@
 
         const path = (col) => `users/${window.currentUserId}/${col}`;
 
-        const isReferenceDuplicate = async (refType, refValue, branch, collectionName, docIdToExclude = null) => {
-            // Don't check empty or whitespace-only reference numbers
-            if (!refValue || refValue.trim() === '') {
-                return false;
+        const refNorm = (value) => String(value == null ? '' : value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        const refDistance = (a, b) => {
+            if (a === b) return 0;
+            if (!a.length) return b.length;
+            if (!b.length) return a.length;
+            let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+            for (let i = 1; i <= a.length; i++) {
+                const row = [i];
+                for (let j = 1; j <= b.length; j++) {
+                    row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+                }
+                prev = row;
             }
-
-            // Construct the Firestore query
-            const q = query(collection(db, path(collectionName)),
-                            where("branch", "==", branch),
-                            where(refType, "==", refValue.trim()));
-
-            const querySnapshot = await getDocs(q);
-
-            // If the query returns no documents, it's not a duplicate.
-            if (querySnapshot.empty) {
-                return false;
-            }
-
-            // If we are editing an existing document (docIdToExclude is provided),
-            // we must check if the found document is a DIFFERENT one.
-            if (docIdToExclude) {
-                // Filter out the document we are currently editing from the results.
-                const otherDocs = querySnapshot.docs.filter(doc => doc.id !== docIdToExclude);
-                // If there are still documents left, it means we found a duplicate.
-                return otherDocs.length > 0;
-            }
-
-            // If we are creating a NEW document, any result from the query is a duplicate.
-            return true;
+            return prev[b.length];
         };
 
+        // References are compared after upper-casing and dropping spaces and
+        // punctuation, so "abc 123" and "ABC-123" are treated as the same.
+        // Near misses are returned separately so the user can be asked.
+        const checkVoucherReferences = async (refs, branch, collectionName, docIdToExclude = null) => {
+            const result = { duplicate: false, label: '', value: '', similar: [] };
+            if (!branch) return result;
+
+            const wanted = [];
+            if (refs.ourRef && String(refs.ourRef).trim()) {
+                wanted.push({ field: 'ourRef', label: 'Our Ref', value: String(refs.ourRef).trim() });
+            }
+            if (refs.customerRef && String(refs.customerRef).trim()) {
+                wanted.push({ field: 'customerRef', label: 'Customer Ref', value: String(refs.customerRef).trim() });
+            }
+            if (!wanted.length) return result;
+
+            let rows = [];
+            try {
+                const snap = await getDocs(query(collection(db, path(collectionName)), where('branch', '==', branch)));
+                rows = snap.docs.filter((d) => d.id !== docIdToExclude).map((d) => d.data());
+            } catch (e) {
+                console.error('Reference check failed:', e);
+                return result; // never block a save because the check itself failed
+            }
+
+            for (const want of wanted) {
+                const wantNorm = refNorm(want.value);
+                if (!wantNorm) continue;
+                for (const row of rows) {
+                    const other = String(row[want.field] || '').trim();
+                    if (other && refNorm(other) === wantNorm) {
+                        result.duplicate = true;
+                        result.label = want.label;
+                        result.value = want.value;
+                        return result;
+                    }
+                }
+            }
+
+            for (const want of wanted) {
+                const wantNorm = refNorm(want.value);
+                if (!wantNorm) continue;
+                for (const row of rows) {
+                    const other = String(row[want.field] || '').trim();
+                    const otherNorm = refNorm(other);
+                    if (!otherNorm || otherNorm === wantNorm) continue;
+                    const maxLen = Math.max(wantNorm.length, otherNorm.length);
+                    if (maxLen < 4) continue;
+                    const dist = refDistance(wantNorm, otherNorm);
+                    const allowed = maxLen <= 8 ? 1 : 2;
+                    if (dist <= allowed && (1 - dist / maxLen) >= 0.8) {
+                        result.similar.push({ label: want.label, value: want.value, existing: other });
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        };
 
         window.removeBranch = async (id) => {
             promptForPassword(async () => {
@@ -3437,13 +3523,22 @@
                 // Handle file status dropdowns
                 form.querySelectorAll('[id$="-file-handling"]').forEach(select => {
                     const fileStatus = data[select.name] || 'missing';
-                    select.value = fileStatus;
                     const idPrefix = select.id.replace('-file-handling', '');
                     const baseName = select.name.replace('Handling', '');
                     const existingUrl = data[baseName + 'Url'] || '';
+                    const existingUuid = data[baseName + 'Uuid'] || '';
                     const existingName = data[baseName + 'Name'] || window.VatFiles.nameFromUrl(existingUrl);
+
                     select.dataset.existingUrl = existingUrl;
-                    select.dataset.existingUuid = data[baseName + 'Uuid'] || '';
+                    select.dataset.existingUuid = existingUuid;
+                    select.value = (existingUrl || existingUuid) ? 'save_file' : fileStatus;
+                    if (existingUrl || existingUuid) {
+                        select.disabled = true;
+                        select.title = 'Remove the attached file to change this status';
+                    } else {
+                        select.disabled = false;
+                        select.removeAttribute('title');
+                    }
                     window.setVoucherFileNote(idPrefix, existingUrl, existingName);
                     toggleFileUpload(idPrefix);
                 });
@@ -3834,9 +3929,14 @@
                     <div id="${prefix}-${field.name}-existing" class="existing-file hidden items-center gap-2 text-xs">
                         <a id="${prefix}-${field.name}-existing-link" href="#" target="_blank" rel="noopener" class="text-indigo-600 hover:underline truncate">Attached file</a>
                         <button type="button" id="${prefix}-${field.name}-existing-copy" data-url="" onclick="copyDocLink(this)" class="shrink-0 font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-copy mr-1"></i>Copy link</button>
+                        <button type="button" id="${prefix}-${field.name}-remove" onclick="removeAttachedFile('${prefix}-${field.name}')" class="shrink-0 font-bold text-rose-600 hover:text-rose-700"><i class="fas fa-trash-can mr-1"></i>Remove</button>
                     </div>
                     <div id="${prefix}-${field.name}-file-container" class="hidden">
-                        <input type="file" id="${prefix}-${field.name}-file" name="${field.name}File" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        <input type="file" id="${prefix}-${field.name}-file" name="${field.name}File" class="file-input-hidden" onchange="updatePickName('${prefix}-${field.name}')">
+                        <div class="file-pick-row">
+                            <button type="button" id="${prefix}-${field.name}-pick-btn" onclick="document.getElementById('${prefix}-${field.name}-file').click()" class="file-pick-btn">Choose File</button>
+                            <span id="${prefix}-${field.name}-pick-name" class="file-pick-name">No file chosen</span>
+                        </div>
                         <p class="text-xs text-gray-500 mt-1">Max file size: 25 MB</p>
                     </div>
                 </div>
@@ -3923,12 +4023,14 @@
             const wrap = document.getElementById(`${idPrefix}-existing`);
             const link = document.getElementById(`${idPrefix}-existing-link`);
             const copyBtn = document.getElementById(`${idPrefix}-existing-copy`);
+            const removeBtn = document.getElementById(`${idPrefix}-remove`);
             if (!wrap || !link) return;
             if (url) {
                 link.href = url;
                 link.textContent = name || "Attached file";
                 link.title = name ? name : url;
                 if (copyBtn) copyBtn.dataset.url = url;
+                if (removeBtn) removeBtn.classList.remove("hidden");
                 wrap.classList.remove("hidden");
                 wrap.classList.add("flex");
             } else {
@@ -3938,7 +4040,9 @@
                 link.removeAttribute("title");
                 link.textContent = "Attached file";
                 if (copyBtn) copyBtn.dataset.url = "";
+                if (removeBtn) removeBtn.classList.add("hidden");
             }
+            window.updatePickName(idPrefix, url ? (name || "") : "");
         };
 
         window.clearVoucherFileNotes = (form) => {
@@ -3950,7 +4054,56 @@
             form.querySelectorAll('[id$="-file-handling"]').forEach((sel) => {
                 sel.dataset.existingUrl = "";
                 sel.dataset.existingUuid = "";
+                sel.disabled = false;
+                sel.removeAttribute("title");
             });
+            form.querySelectorAll('input[type="file"]').forEach((inp) => {
+                delete inp.dataset.pendingRemove;
+                delete inp.dataset.removeUrl;
+                delete inp.dataset.removeUuid;
+            });
+            form.querySelectorAll('[id$="-pick-btn"]').forEach((btn) => { btn.textContent = "Choose File"; });
+            form.querySelectorAll('[id$="-pick-name"]').forEach((span) => { span.textContent = "No file chosen"; });
+        };
+
+        window.updatePickName = (idPrefix, fallbackName) => {
+            const input = document.getElementById(`${idPrefix}-file`);
+            const btn = document.getElementById(`${idPrefix}-pick-btn`);
+            const nameEl = document.getElementById(`${idPrefix}-pick-name`);
+            const sel = document.getElementById(`${idPrefix}-file-handling`);
+            const chosen = (input && input.files && input.files.length) ? input.files[0].name : "";
+            if (chosen && sel) {
+                sel.value = "save_file";
+                delete input.dataset.pendingRemove;
+                toggleFileUpload(idPrefix);
+            }
+            const label = chosen || (typeof fallbackName === "string" ? fallbackName : "");
+            if (nameEl) nameEl.textContent = label || "No file chosen";
+            if (btn) btn.textContent = label ? "Change File" : "Choose File";
+        };
+
+        window.removeAttachedFile = (idPrefix) => {
+            const sel = document.getElementById(`${idPrefix}-file-handling`);
+            const input = document.getElementById(`${idPrefix}-file`);
+            const wrap = document.getElementById(`${idPrefix}-existing`);
+            if (!wrap || wrap.classList.contains("hidden")) return;
+            const really = window.confirm("Remove this attached file? The file will be deleted when you save the voucher.");
+            if (!really) return;
+            if (input && sel) {
+                input.dataset.pendingRemove = "1";
+                input.dataset.removeUrl = sel.dataset.existingUrl || "";
+                input.dataset.removeUuid = sel.dataset.existingUuid || "";
+            }
+            if (sel) {
+                sel.dataset.existingUrl = "";
+                sel.dataset.existingUuid = "";
+                sel.disabled = false;
+                sel.value = "missing";
+                sel.removeAttribute("title");
+            }
+            if (input) input.value = "";
+            window.setVoucherFileNote(idPrefix, "", "");
+            toggleFileUpload(idPrefix);
         };
 
         window.copyDocLink = async (source) => {
@@ -5273,23 +5426,29 @@
 
                     // --- START: DUPLICATE REFERENCE CHECK ---
                     if (collectionName.includes('Vouchers')) {
-                        const ourRef = data.ourRef;
-                        const customerRef = data.customerRef;
+                        const refCheck = await checkVoucherReferences({
+                            ourRef: data.ourRef,
+                            customerRef: data.customerRef
+                        }, window.selectedBranch, collectionName, docId);
 
-                        const isOurRefDuplicate = await isReferenceDuplicate('ourRef', ourRef, window.selectedBranch, collectionName, docId);
-                        if (isOurRefDuplicate) {
-                            customAlert(`The 'Our Ref' number "${ourRef}" is already in use for another voucher in this branch. Please use a unique reference number.`, 'Duplicate Reference');
+                        if (refCheck.duplicate) {
+                            customAlert(`The ${refCheck.label} "${refCheck.value}" is already used by another voucher in this branch (letter case and spaces are ignored). Please use a unique reference number.`, 'Duplicate Reference');
                             submitButton.disabled = false;
                             submitButton.textContent = originalSubmitText.replace('Saving...','Save');
-                            return; // Stop the function
+                            return;
                         }
 
-                        const isCustomerRefDuplicate = await isReferenceDuplicate('customerRef', customerRef, window.selectedBranch, collectionName, docId);
-                        if (isCustomerRefDuplicate) {
-                            customAlert(`The 'Customer Ref' number "${customerRef}" is already in use for another voucher in this branch. Please use a unique reference number.`, 'Duplicate Reference');
-                            submitButton.disabled = false;
-                            submitButton.textContent = originalSubmitText.replace('Saving...','Save');
-                            return; // Stop the function
+                        for (const ask of refCheck.similar) {
+                            const same = await window.customConfirm(
+                                `A similar ${ask.label} already exists: "${ask.existing}".\n\nIs "${ask.value}" the same voucher? Please check before saving.`,
+                                'Please check this reference'
+                            );
+                            if (same) {
+                                customAlert(`The ${ask.label} "${ask.value}" matches an existing voucher ("${ask.existing}"). Please use a unique reference number.`, 'Duplicate Reference');
+                                submitButton.disabled = false;
+                                submitButton.textContent = originalSubmitText.replace('Saving...','Save');
+                                return;
+                            }
                         }
                     }
                     // --- END: DUPLICATE REFERENCE CHECK ---
@@ -5319,8 +5478,8 @@
                                     throw new Error("File too large.");
                                 }
 
-                                const priorUrl = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUrl) || '';
-                                const priorUuid = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUuid) || '';
+                                const priorUrl = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUrl) || input.dataset.removeUrl || '';
+                                const priorUuid = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUuid) || input.dataset.removeUuid || '';
                                 if (priorUrl || priorUuid) replacedAssets.push({ url: priorUrl, uuid: priorUuid });
 
                                 if (gdriveReady) {
@@ -5344,18 +5503,24 @@
                                         data[input.name + 'Name'] = file.name;
                                     }));
                                 }
+                            } else if (input.dataset.pendingRemove === '1') {
+                                // The attachment was removed: drop the stored file.
+                                const priorUrl = input.dataset.removeUrl || '';
+                                const priorUuid = input.dataset.removeUuid || '';
+                                if (priorUrl || priorUuid) replacedAssets.push({ url: priorUrl, uuid: priorUuid });
+                                ['Url', 'Uuid', 'Folder', 'Name'].forEach((k) => { data[input.name + k] = null; });
                             } else if (fileHandling === 'save_file') {
                                 // Save / Upload selected but nothing attached: allow only
                                 // when a file is already stored for this voucher.
-                                const existingUrl = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUrl) || '';
-                                if (!existingUrl) {
+                                const existingAsset = (handlingDropdown && handlingDropdown.dataset && (handlingDropdown.dataset.existingUrl || handlingDropdown.dataset.existingUuid)) || '';
+                                if (!existingAsset) {
                                     const DOC_LABELS = { invoiceFile: "Invoice", edFile: "ED", voucherFile: "Voucher", statementFile: "Statement" };
                                     const label = DOC_LABELS[input.name] || "document";
                                     customAlert(`Attach the ${label} file, or set "${label} File Status" to "1. ${label} missing" if you do not have it yet.`, "File required");
                                     return;
                                 }
                             } else {
-                                delete data[input.name + 'Url'];
+                                ['Url', 'Uuid', 'Folder', 'Name'].forEach((k) => { data[input.name + k] = null; });
                             }
                         }
                         await Promise.all(uploadPromises);
@@ -9852,7 +10017,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.11';
+const APP_VERSION = '1.12';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
