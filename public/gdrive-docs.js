@@ -502,6 +502,31 @@
     else menu.appendChild(link);
   }
 
+  // ── delete ───────────────────────────────────────────────────────────────
+  /**
+   * Delete a previously uploaded file (Google Drive copy + local copy + row).
+   * Used when a voucher document is replaced by a new upload.
+   */
+  async function remove(uuid) {
+    var cfg = load();
+    if (!isEnabled(cfg)) {
+      throw new Error('GDrive Service is not set up yet.');
+    }
+    var id = String(uuid || '').trim();
+    if (!id) throw new Error('Missing file id');
+
+    var res = await fetch(apiBase(cfg) + '/file/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: authHeaders(cfg)
+    });
+    var body = null;
+    try { body = await res.json(); } catch (e) { body = null; }
+    if (!res.ok || (body && body.ok === false)) {
+      throw new Error((body && body.error) || ('Drive delete failed (' + res.status + ')'));
+    }
+    return true;
+  }
+
   // ── boot ──────────────────────────────────────────────────────────────────
   function boot() {
     injectMenuItem();
@@ -538,6 +563,7 @@
     isEnabled: isEnabled,
     maxBytes: maxBytes,
     upload: upload,
+    remove: remove,
     me: me,
     openSettings: openSettings,
     syncFromCloud: syncFromCloud,

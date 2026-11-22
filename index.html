@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.10</title>
+    <title>CORPOVAT ELITE V1.11</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -338,7 +338,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.10</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.11</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -380,7 +380,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.10</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.11</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -3115,7 +3115,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, query, where, onSnapshot, getDocs, Timestamp, doc, deleteDoc, updateDoc, getDoc, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
         // --- Global storage for ledger data ---
         window.ledgerData = {};
@@ -3439,9 +3439,12 @@
                     const fileStatus = data[select.name] || 'missing';
                     select.value = fileStatus;
                     const idPrefix = select.id.replace('-file-handling', '');
-                    const existingUrl = data[select.name.replace('Handling', 'Url')] || '';
+                    const baseName = select.name.replace('Handling', '');
+                    const existingUrl = data[baseName + 'Url'] || '';
+                    const existingName = data[baseName + 'Name'] || window.VatFiles.nameFromUrl(existingUrl);
                     select.dataset.existingUrl = existingUrl;
-                    window.setVoucherFileNote(idPrefix, existingUrl);
+                    select.dataset.existingUuid = data[baseName + 'Uuid'] || '';
+                    window.setVoucherFileNote(idPrefix, existingUrl, existingName);
                     toggleFileUpload(idPrefix);
                 });
 
@@ -3834,7 +3837,7 @@
                     </div>
                     <div id="${prefix}-${field.name}-file-container" class="hidden">
                         <input type="file" id="${prefix}-${field.name}-file" name="${field.name}File" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                        <p class="text-xs text-gray-500 mt-1">Max file size: 350 KB</p>
+                        <p class="text-xs text-gray-500 mt-1">Max file size: 25 MB</p>
                     </div>
                 </div>
             `).join('');
@@ -3881,146 +3884,50 @@
         // Oversized files are re-encoded before upload: images through a
         // canvas (JPEG quality searched for the best fit under the limit),
         // PDFs by re-rasterising each page and rebuilding a compact PDF.
+        // ── Document helpers: file names and replaced-file cleanup ────────
         window.VatFiles = (() => {
-            const loadPdfJs = () => new Promise((resolve) => {
-                if (window.pdfjsLib) return resolve(window.pdfjsLib);
-                const existing = document.getElementById("vat-pdfjs");
-                if (existing) {
-                    existing.addEventListener("load", () => resolve(window.pdfjsLib || null));
-                    existing.addEventListener("error", () => resolve(null));
-                    return;
-                }
-                const s = document.createElement("script");
-                s.id = "vat-pdfjs";
-                s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-                s.onload = () => {
-                    if (window.pdfjsLib) {
-                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-                    }
-                    resolve(window.pdfjsLib || null);
-                };
-                s.onerror = () => resolve(null);
-                document.head.appendChild(s);
-            });
-
-            const renamed = (blob, file, ext, type) => {
-                const base = String(file.name || "document").replace(/\.[^.]+$/, "");
-                return new File([blob], base + ext, { type: type, lastModified: Date.now() });
-            };
-
-            const toJpeg = (canvas, quality) => new Promise((resolve) => {
-                canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
-            });
-
-            const shrinkImage = async (file, maxBytes) => {
-                let bitmap = null;
+            const nameFromUrl = (url) => {
+                // Only Firebase Storage links carry the original file name.
+                if (!/firebasestorage\.googleapis\.com/i.test(String(url || ""))) return "";
                 try {
-                    bitmap = await createImageBitmap(file);
+                    const clean = String(url).split("?")[0].split("#")[0];
+                    const decoded = decodeURIComponent(clean.split("/").pop() || "");
+                    const leaf = decoded.split("/").pop() || "";
+                    return leaf.replace(/^\d{10,}-/, "");
                 } catch (e) {
-                    return null;
+                    return "";
                 }
-                const scales = [1, 0.86, 0.72, 0.6, 0.48, 0.38];
-                for (const sc of scales) {
-                    const w = Math.max(1, Math.round(bitmap.width * sc));
-                    const h = Math.max(1, Math.round(bitmap.height * sc));
-                    const canvas = document.createElement("canvas");
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext("2d");
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.drawImage(bitmap, 0, 0, w, h);
-                    let lo = 0.4;
-                    let hi = 0.95;
-                    let best = null;
-                    for (let i = 0; i < 7; i++) {
-                        const q = (lo + hi) / 2;
-                        const blob = await toJpeg(canvas, q);
-                        if (!blob) break;
-                        if (blob.size <= maxBytes) {
-                            best = blob;
-                            lo = q;
-                        } else {
-                            hi = q;
+            };
+
+            const removeReplaced = async (assets) => {
+                for (const a of assets || []) {
+                    if (!a) continue;
+                    try {
+                        if (a.uuid && window.VatGDrive && typeof window.VatGDrive.remove === "function") {
+                            await window.VatGDrive.remove(a.uuid);
+                            continue;
                         }
-                    }
-                    canvas.width = 1;
-                    canvas.height = 1;
-                    if (best) return renamed(best, file, ".jpg", "image/jpeg");
-                }
-                return null;
-            };
-
-            const shrinkPdf = async (file, maxBytes) => {
-                const lib = await loadPdfJs();
-                if (!lib || !window.jspdf || !window.jspdf.jsPDF) return null;
-                const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-                const scaleLadder = [2, 1.5, 1.15, 0.85];
-                const qualityLadder = [0.85, 0.72, 0.6, 0.5];
-
-                const build = (pages, quality) => {
-                    const JS = window.jspdf.jsPDF;
-                    const orient = (w, h) => (w > h ? "landscape" : "portrait");
-                    const doc = new JS({ unit: "pt", format: [pages[0].w, pages[0].h], orientation: orient(pages[0].w, pages[0].h), compress: true });
-                    pages.forEach((pg, idx) => {
-                        if (idx > 0) doc.addPage([pg.w, pg.h], orient(pg.w, pg.h));
-                        doc.addImage(pg.canvas.toDataURL("image/jpeg", quality), "JPEG", 0, 0, pg.w, pg.h, undefined, "FAST");
-                    });
-                    return doc.output("blob");
-                };
-
-                for (const base of scaleLadder) {
-                    const pages = [];
-                    for (let p = 1; p <= pdf.numPages; p++) {
-                        const page = await pdf.getPage(p);
-                        const ptSize = page.getViewport({ scale: 1 });
-                        const vp = page.getViewport({ scale: base });
-                        const canvas = document.createElement("canvas");
-                        canvas.width = Math.ceil(vp.width);
-                        canvas.height = Math.ceil(vp.height);
-                        const ctx = canvas.getContext("2d");
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-                        pages.push({ canvas: canvas, w: ptSize.width, h: ptSize.height });
-                    }
-                    let result = null;
-                    for (const q of qualityLadder) {
-                        const blob = build(pages, q);
-                        if (blob.size <= maxBytes) {
-                            result = new Blob([blob], { type: "application/pdf" });
-                            break;
+                        if (a.url && /firebasestorage\.googleapis\.com/i.test(a.url)) {
+                            await deleteObject(ref(storage, a.url));
                         }
+                    } catch (e) {
+                        console.warn("Could not delete the replaced document:", e);
                     }
-                    pages.forEach((pg) => { pg.canvas.width = 1; pg.canvas.height = 1; });
-                    if (result) return renamed(result, file, ".pdf", "application/pdf");
                 }
-                return null;
             };
 
-            const isPdf = (file) => /pdf/i.test(file.type || "") || /\.pdf$/i.test(file.name || "");
-            const isImage = (file) => /^image\//i.test(file.type || "") || /\.(png|jpe?g|webp|bmp|gif)$/i.test(file.name || "");
-
-            const shrink = async (file, maxBytes) => {
-                try {
-                    if (isPdf(file)) return await shrinkPdf(file, maxBytes);
-                    if (isImage(file)) return await shrinkImage(file, maxBytes);
-                } catch (e) {
-                    console.error("Document compression failed:", e);
-                }
-                return null;
-            };
-
-            return { shrink: shrink, canCompress: (file) => isPdf(file) || isImage(file) };
+            return { nameFromUrl: nameFromUrl, removeReplaced: removeReplaced };
         })();
 
-        window.setVoucherFileNote = (idPrefix, url) => {
+        window.setVoucherFileNote = (idPrefix, url, name) => {
             const wrap = document.getElementById(`${idPrefix}-existing`);
             const link = document.getElementById(`${idPrefix}-existing-link`);
             const copyBtn = document.getElementById(`${idPrefix}-existing-copy`);
             if (!wrap || !link) return;
             if (url) {
                 link.href = url;
+                link.textContent = name || "Attached file";
+                link.title = name ? name : url;
                 if (copyBtn) copyBtn.dataset.url = url;
                 wrap.classList.remove("hidden");
                 wrap.classList.add("flex");
@@ -4028,6 +3935,8 @@
                 wrap.classList.add("hidden");
                 wrap.classList.remove("flex");
                 link.removeAttribute("href");
+                link.removeAttribute("title");
+                link.textContent = "Attached file";
                 if (copyBtn) copyBtn.dataset.url = "";
             }
         };
@@ -4038,7 +3947,10 @@
                 el.classList.add("hidden");
                 el.classList.remove("flex");
             });
-            form.querySelectorAll('[id$="-file-handling"]').forEach((sel) => { sel.dataset.existingUrl = ""; });
+            form.querySelectorAll('[id$="-file-handling"]').forEach((sel) => {
+                sel.dataset.existingUrl = "";
+                sel.dataset.existingUuid = "";
+            });
         };
 
         window.copyDocLink = async (source) => {
@@ -5385,7 +5297,8 @@
                     const fileInputs = form.querySelectorAll('input[type="file"]');
                     const uploadPromises = [];
                     const fileInputNames = [];
-                    const MAX_FILE_SIZE = 350 * 1024;
+                    const MAX_FILE_SIZE = 25 * 1024 * 1024;
+                    const replacedAssets = [];
 
                     try {
                         for (const input of fileInputs) {
@@ -5396,23 +5309,19 @@
                             const fileHandling = handlingDropdown ? handlingDropdown.value : 'save_file';
                             
                             if (fileHandling === 'save_file' && input.files.length > 0) {
-                                let file = input.files[0];
+                                const file = input.files[0];
                                 
                                 const gdriveReady = !!(window.VatGDrive && window.VatGDrive.isEnabled());
                                 const sizeLimit = gdriveReady ? window.VatGDrive.maxBytes() : MAX_FILE_SIZE;
-                                if (file.size > sizeLimit && window.VatFiles) {
-                                    submitButton.textContent = 'Compressing…';
-                                    const shrunk = await window.VatFiles.shrink(file, sizeLimit);
-                                    submitButton.textContent = 'Saving...';
-                                    if (shrunk && shrunk.size <= sizeLimit) {
-                                        file = shrunk;
-                                    }
-                                }
                                 if (file.size > sizeLimit) {
                                     const limitText = sizeLimit >= 1048576 ? (sizeLimit / 1048576) + ' MB' : Math.round(sizeLimit / 1024) + ' KB';
-                                    customAlert(`File "${file.name}" could not be reduced below ${limitText}. Try a smaller scan or a photo of the document.`, 'File Size Error');
+                                    customAlert(`File "${file.name}" is too large. Maximum size is ${limitText}.`, 'File Size Error');
                                     throw new Error("File too large.");
                                 }
+
+                                const priorUrl = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUrl) || '';
+                                const priorUuid = (handlingDropdown && handlingDropdown.dataset && handlingDropdown.dataset.existingUuid) || '';
+                                if (priorUrl || priorUuid) replacedAssets.push({ url: priorUrl, uuid: priorUuid });
 
                                 if (gdriveReady) {
                                     // New documents go to the WhatAnAgent GDrive service, filed under
@@ -5424,6 +5333,7 @@
                                         data[input.name + 'Url'] = result.url;
                                         data[input.name + 'Uuid'] = result.file_uuid;
                                         data[input.name + 'Folder'] = result.folder || '';
+                                        data[input.name + 'Name'] = result.name || file.name;
                                     }));
                                 } else {
                                     const timestamp = new Date().getTime();
@@ -5431,6 +5341,7 @@
 
                                     uploadPromises.push(uploadBytes(storageRef, file).then(snapshot => getDownloadURL(snapshot.ref)).then(url => {
                                         data[input.name + 'Url'] = url;
+                                        data[input.name + 'Name'] = file.name;
                                     }));
                                 }
                             } else if (fileHandling === 'save_file') {
@@ -5668,6 +5579,11 @@
                             }
                         }
                         
+                        if (replacedAssets.length) {
+                            await window.VatFiles.removeReplaced(replacedAssets);
+                            replacedAssets.length = 0;
+                        }
+
                         form.reset();
                         // Clear custom search inputs
                         form.querySelectorAll('[id$="-customer-name-search"]').forEach(input => input.value = '');
@@ -9936,7 +9852,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.11';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
