@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.7</title>
+    <title>CORPOVAT ELITE V1.8</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -183,6 +183,83 @@
         #sidebar .sidebar-scroll::-webkit-scrollbar { width: 5px; }
         #sidebar .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 9999px; }
         #sidebar .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+
+        /* ── Voucher forms: clean, professional card ───────────────── */
+        .voucher-card {
+            max-width: 1040px; margin: 0 auto; background: #ffffff;
+            border: 1px solid #e2e8f0; border-radius: 16px;
+            box-shadow: 0 18px 40px -26px rgba(15,23,42,0.35);
+            padding: 20px;
+        }
+        @media (min-width: 768px) { .voucher-card { padding: 30px 34px 26px; } }
+        .voucher-card .voucher-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; margin-bottom: 1.35rem; padding-bottom: 0.9rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .voucher-card .voucher-head h2 {
+            font-size: 1.35rem !important; font-weight: 700 !important;
+            letter-spacing: -0.01em; color: #0f172a !important; margin: 0;
+        }
+        .voucher-card label {
+            display: block; font-size: 0.68rem !important; font-weight: 700 !important;
+            letter-spacing: 0.06em; text-transform: uppercase; color: #64748b !important;
+            margin-bottom: 0.3rem;
+        }
+        .voucher-card input:not([type="file"]):not([type="hidden"]),
+        .voucher-card select, .voucher-card textarea {
+            width: 100%; margin-top: 0 !important;
+            padding: 0.62rem 0.8rem !important; font-size: 0.9rem !important;
+            line-height: 1.25; color: #0f172a; background: #ffffff;
+            border: 1px solid #cbd5e1 !important; border-radius: 10px !important;
+            box-shadow: none !important;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .voucher-card input:not([type="file"]):not([type="hidden"]):hover,
+        .voucher-card select:hover { border-color: #94a3b8 !important; }
+        .voucher-card input:not([type="file"]):not([type="hidden"]):focus,
+        .voucher-card select:focus, .voucher-card textarea:focus {
+            outline: none !important; border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.16) !important;
+        }
+        .voucher-card input[readonly], .voucher-card input:disabled,
+        .voucher-card select:disabled {
+            background: #f1f5f9 !important; color: #475569 !important; cursor: default;
+        }
+        .voucher-card input[type="file"] {
+            width: 100%; padding: 0.55rem 0.65rem !important; font-size: 0.8rem;
+            color: #475569; background: #f8fafc;
+            border: 1px dashed #cbd5e1 !important; border-radius: 10px !important;
+        }
+        .voucher-card button[type="submit"] {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed) !important;
+            border: 0; color: #ffffff !important; font-weight: 700 !important;
+            font-size: 0.9rem !important; padding: 0.7rem 1.7rem !important;
+            border-radius: 10px !important;
+            box-shadow: 0 10px 20px -10px rgba(79,70,229,0.7) !important;
+            transition: filter .12s ease, transform .12s ease, box-shadow .12s ease;
+        }
+        .voucher-card button[type="submit"]:hover {
+            filter: brightness(1.06);
+            box-shadow: 0 14px 26px -10px rgba(79,70,229,0.8) !important;
+        }
+        .voucher-card button[type="submit"]:active { transform: translateY(1px); }
+        .voucher-card button[type="submit"]:disabled { opacity: .7; cursor: progress; }
+        .voucher-card input.bg-vat-match { background: #dcfce7 !important; border-color: #86efac !important; }
+        .voucher-card input.bg-vat-mismatch { background: #ffe4e6 !important; border-color: #fda4af !important; }
+        .voucher-card [data-docs-back] { display: none; }
+        .voucher-card [data-docs-back].docs-back-on { display: inline-flex; align-items: center; }
+
+        /* Documents page: period switcher */
+        #branch-docs-range-panel label {
+            display: block; font-size: 0.6rem; font-weight: 700;
+            letter-spacing: 0.07em; text-transform: uppercase; color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+        #branch-docs-range-panel select, #branch-docs-range-panel input[type="date"] {
+            width: 100%; padding: 0.45rem 0.6rem; font-size: 0.82rem;
+            border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -261,7 +338,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.7</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.8</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -303,7 +380,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.7</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.8</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -2802,10 +2879,42 @@
                 <button type="button" onclick="closeBranchDocsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-arrow-left mr-1"></i>Back</button>
                 <div class="min-w-0">
                     <div class="font-semibold text-sm tracking-wide">Documents Details</div>
-                    <div class="text-[11px] text-white/80 truncate"><span id="branch-docs-branch">—</span> &middot; <span id="branch-docs-period">—</span></div>
+                    <button type="button" onclick="toggleDocsRangePanel()" class="text-[11px] text-white/85 hover:text-white truncate flex items-center gap-1" title="Change the period or date range"><span id="branch-docs-branch">—</span> &middot; <span id="branch-docs-period">—</span> <i class="fas fa-chevron-down text-[9px] opacity-80"></i></button>
                 </div>
             </div>
             <button type="button" onclick="loadBranchDocs(true)" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+        </div>
+
+        <!-- In-page period / date range switcher -->
+        <div id="branch-docs-range-panel" class="hidden fixed left-4 top-14 z-[130] w-[min(92vw,620px)] rounded-xl border border-slate-200 bg-white p-4 shadow-2xl">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label for="docs-filter-type">View</label>
+                    <select id="docs-filter-type" onchange="syncDocsRangeFields()"></select>
+                </div>
+                <div id="docs-year-picker">
+                    <label for="docs-filter-year">Year</label>
+                    <select id="docs-filter-year"></select>
+                </div>
+                <div id="docs-month-picker">
+                    <label for="docs-filter-month">Month</label>
+                    <select id="docs-filter-month"></select>
+                </div>
+            </div>
+            <div id="docs-range-picker" class="hidden mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="docs-start-date">Start Date</label>
+                    <input type="date" id="docs-start-date">
+                </div>
+                <div>
+                    <label for="docs-end-date">End Date</label>
+                    <input type="date" id="docs-end-date">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button" onclick="closeDocsRangePanel()" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</button>
+                <button type="button" onclick="applyDocsRange()" class="px-4 py-1.5 rounded-lg text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700">Apply</button>
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4">
@@ -3249,7 +3358,8 @@
                 form.querySelectorAll('input[name="docId"], input[name="mirroredFromHidden"]').forEach(el => el.remove());
                 
                 window.showForm(formPrefix);
-                document.getElementById('page-title').innerText = `Edit ${collectionName.replace('Vouchers', ' Voucher').replace('s', '')}`;
+                const prettyType = collectionName.replace('Vouchers', '');
+                document.getElementById('page-title').innerText = 'Edit ' + prettyType.charAt(0).toUpperCase() + prettyType.slice(1) + ' Voucher';
                 const submitButton = form.querySelector('button[type="submit"]');
                 if (submitButton && (formPrefix === 'sales' || formPrefix === 'purchase')) {
                     submitButton.textContent = 'Update & Save';
@@ -3713,7 +3823,6 @@
                     <label class="block text-sm font-medium text-gray-700">${field.label} File Status</label>
                     <select id="${prefix}-${field.name}-file-handling" name="${field.name}FileHandling" onchange="toggleFileUpload('${prefix}-${field.name}')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                         <option value="missing">1. ${field.label} missing</option>
-                        <option value="in_folder" hidden>${field.label} already in folder</option>
                         <option value="save_file">2. Save / Upload ${field.label}</option>
                     </select>
                     <div id="${prefix}-${field.name}-file-container" class="hidden">
@@ -3724,13 +3833,16 @@
             `).join('');
 
             return `
-                <div class="bg-white p-8 rounded-lg shadow-md">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="voucher-card">
+                    <div class="voucher-head">
                         <h2 class="text-2xl font-bold text-gray-800">${config.title}</h2>
-                        <button type="button" onclick="closeVoucherForm('${prefix}')" class="text-gray-500 hover:text-gray-800 p-2" title="Close voucher without saving" aria-label="Close voucher without saving"><i class="fas fa-times text-xl"></i></button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" data-docs-back onclick="returnToDocsAfterVoucher()" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md transition" title="Back to the documents list"><i class="fas fa-arrow-left mr-1"></i>Documents</button>
+                            <button type="button" onclick="closeVoucherForm('${prefix}')" class="text-gray-400 hover:text-gray-800 hover:bg-slate-100 rounded-lg p-2 transition" title="Close voucher" aria-label="Close voucher"><i class="fas fa-times text-lg"></i></button>
+                        </div>
                     </div>
                     <form id="${prefix}-form" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                             ${config.fields}
                             ${fileFieldsHTML}
                         </div>
@@ -3747,6 +3859,10 @@
             if (form) {
                 form.reset();
                 form.querySelectorAll('input[name="docId"], input[name="mirroredFromHidden"]').forEach(field => field.remove());
+            }
+            if (window.docsReturnState) {
+                window.returnToDocsAfterVoucher();
+                return;
             }
             const returnForm = window.voucherCloseDestination || `${prefix}Ledger`;
             window.voucherCloseDestination = null;
@@ -3917,6 +4033,8 @@
                 }
                 return { startISO, endISO, periodName };
             };
+
+            window.getFilterDates = getFilterDates;
 
             window.calculateVATSubmission = () => {
                 const totalSalesAmount = parseFloat(document.getElementById('submission-totalSalesAmount').value) || 0;
@@ -5371,6 +5489,8 @@
                         form.querySelectorAll('[id*="-vat-on-invoice"]').forEach(input => {
                             input.classList.remove('bg-vat-match', 'bg-vat-mismatch');
                         });
+
+                        if (typeof window.returnToDocsAfterVoucher === "function") window.returnToDocsAfterVoucher();
                         
                     } catch (error) {
                         console.error("Error saving data:", error);
@@ -9602,7 +9722,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -10717,11 +10837,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
 
         let branchDocsBusy = false;
 
-        const branchDocHas = (voucher, doc) => {
-            const url = String(voucher[doc.field] || "").trim();
-            if (url) return true;
-            return String(voucher[doc.handling] || "") === "in_folder";
-        };
+        const branchDocHas = (voucher, doc) => String(voucher[doc.field] || "").trim() !== "";
 
         let branchDocsResults = [];
         let branchDocsDetailKey = null;
@@ -10757,13 +10873,139 @@ const CORP_BUILD_VERSION = APP_VERSION;
             renderBranchDocsDetail();
         };
 
+        const DOC_SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        const docsFmtDay = (iso) => {
+            if (!iso || iso === "1970-01-01" || iso === "9999-12-31") return "";
+            const d = new Date(iso + "T00:00:00");
+            if (isNaN(d.getTime())) return "";
+            return String(d.getDate()).padStart(2, "0") + " " + DOC_SHORT_MONTHS[d.getMonth()] + " " + d.getFullYear();
+        };
+
+        const docsInclusiveEnd = (endISO) => {
+            if (!endISO || endISO === "9999-12-31") return "";
+            const d = new Date(endISO);
+            d.setUTCDate(d.getUTCDate() - 1);
+            return d.toISOString().slice(0, 10);
+        };
+
+        const docsRangeLabel = (periodName, startISO, endISO) => {
+            const from = docsFmtDay(startISO);
+            const to = docsFmtDay(docsInclusiveEnd(endISO));
+            const range = (from && to) ? from + " \u2013 " + to : "";
+            if (periodName && range) return periodName + " \u00b7 " + range;
+            return periodName || range || "All periods";
+        };
+
+        window.docsReturnState = null;
+
+        window.syncDocsRangeFields = () => {
+            const type = (document.getElementById("docs-filter-type") || {}).value || "monthly";
+            const y = document.getElementById("docs-year-picker");
+            const m = document.getElementById("docs-month-picker");
+            const r = document.getElementById("docs-range-picker");
+            if (!y || !m || !r) return;
+            y.classList.add("hidden");
+            m.classList.add("hidden");
+            r.classList.add("hidden");
+            if (type === "daterange") r.classList.remove("hidden");
+            else if (type === "total") { /* no extra controls */ }
+            else if (type === "annually") y.classList.remove("hidden");
+            else { y.classList.remove("hidden"); m.classList.remove("hidden"); }
+            const monthLabel = m.querySelector("label");
+            if (monthLabel) monthLabel.textContent = type === "monthly" ? "Month" : "Start Month";
+        };
+
+        const fillDocsRangePanel = () => {
+            [["filter-type", "docs-filter-type"], ["filter-year", "docs-filter-year"], ["filter-month", "docs-filter-month"]]
+                .forEach(([from, to]) => {
+                    const src = document.getElementById(from);
+                    const dst = document.getElementById(to);
+                    if (!src || !dst) return;
+                    dst.innerHTML = src.innerHTML;
+                    dst.value = src.value;
+                });
+            const map = [["dashboard-start-date", "docs-start-date"], ["dashboard-end-date", "docs-end-date"]];
+            map.forEach(([from, to]) => {
+                const src = document.getElementById(from);
+                const dst = document.getElementById(to);
+                if (src && dst) dst.value = src.value || "";
+            });
+            window.syncDocsRangeFields();
+        };
+
+        window.toggleDocsRangePanel = () => {
+            const p = document.getElementById("branch-docs-range-panel");
+            if (!p) return;
+            if (p.classList.contains("hidden")) {
+                fillDocsRangePanel();
+                p.classList.remove("hidden");
+            } else {
+                p.classList.add("hidden");
+            }
+        };
+
+        window.closeDocsRangePanel = () => {
+            const p = document.getElementById("branch-docs-range-panel");
+            if (p) p.classList.add("hidden");
+        };
+
+        window.applyDocsRange = () => {
+            const pick = (id) => { const el = document.getElementById(id); return el ? el.value : ""; };
+            const values = {
+                "filter-type": pick("docs-filter-type"),
+                "filter-year": pick("docs-filter-year"),
+                "filter-month": pick("docs-filter-month"),
+                "dashboard-start-date": pick("docs-start-date"),
+                "dashboard-end-date": pick("docs-end-date")
+            };
+            Object.keys(values).forEach((id) => { const el = document.getElementById(id); if (el) el.value = values[id]; });
+            if (typeof window.toggleDashboardFilters === "function") window.toggleDashboardFilters("");
+            window.closeDocsRangePanel();
+            if (typeof window.updateBranchDashboard === "function") window.updateBranchDashboard();
+            loadBranchDocs(true);
+        };
+
+        const setDocsBackButtons = (on) => {
+            document.querySelectorAll("[data-docs-back]").forEach((btn) => btn.classList.toggle("docs-back-on", !!on));
+        };
+        window.setDocsBackButtons = setDocsBackButtons;
+
         window.openVoucherForEdit = (id, collectionName) => {
             if (!id || !collectionName) return;
-            closeBranchDocsDetail();
-            closeBranchDocsView();
+            window.docsReturnState = { key: branchDocsDetailKey, tab: branchDocsTab };
+            const overlay = document.getElementById("branch-docs-overlay");
+            if (overlay) {
+                overlay.classList.add("hidden");
+                overlay.classList.remove("flex");
+            }
+            setDocsBackButtons(true);
             if (typeof window.editVoucher === "function") {
                 window.editVoucher(id, collectionName);
             }
+        };
+
+        window.returnToDocsAfterVoucher = () => {
+            const state = window.docsReturnState;
+            if (!state) return;
+            window.docsReturnState = null;
+            window.voucherCloseDestination = null;
+            setDocsBackButtons(false);
+            const overlay = document.getElementById("branch-docs-overlay");
+            if (overlay) {
+                overlay.classList.remove("hidden");
+                overlay.classList.add("flex");
+            }
+            branchDocsDetailKey = state.key;
+            branchDocsTab = state.tab === "remaining" ? "remaining" : "available";
+            const cards = document.getElementById("branch-docs-cards");
+            const summary = document.getElementById("branch-docs-summary");
+            const detail = document.getElementById("branch-docs-detail");
+            if (cards) cards.classList.add("hidden");
+            if (summary) summary.classList.add("hidden");
+            if (detail) detail.classList.remove("hidden");
+            renderBranchDocsDetail();
+            loadBranchDocs(true);
         };
 
         window.renderBranchDocsDetail = () => {
@@ -10847,6 +11089,9 @@ const CORP_BUILD_VERSION = APP_VERSION;
             if (!overlay) return;
             overlay.classList.add("hidden");
             overlay.classList.remove("flex");
+            window.docsReturnState = null;
+            setDocsBackButtons(false);
+            closeBranchDocsDetail();
         };
 
         window.loadBranchDocs = async (showSpinner) => {
@@ -10859,7 +11104,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
                 return;
             }
 
-            const periodInfo = (typeof getFilterDates === "function") ? getFilterDates("") : {};
+            const periodInfo = (typeof window.getFilterDates === "function") ? window.getFilterDates("") : {};
             const periodName = periodInfo.periodName || "";
             const startISO = periodInfo.startISO || "";
             const endISO = periodInfo.endISO || "";
@@ -10867,7 +11112,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             const branchEl = document.getElementById("branch-docs-branch");
             const periodEl = document.getElementById("branch-docs-period");
             if (branchEl) branchEl.textContent = branchName;
-            if (periodEl) periodEl.textContent = periodName || "All periods";
+            if (periodEl) periodEl.textContent = docsRangeLabel(periodName, startISO, endISO);
 
             if (showSpinner && summary) summary.textContent = "Reading vouchers for this period…";
             branchDocsBusy = true;
