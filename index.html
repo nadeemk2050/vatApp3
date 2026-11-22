@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.14</title>
+    <title>CORPOVAT ELITE V1.15</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -361,7 +361,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.14</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.15</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -430,7 +430,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.14</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.15</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -571,7 +571,7 @@
                                         <input type="date" id="main-dashboard-end-date" class="mt-1 block rounded-md border-gray-300 shadow-sm p-2 text-sm">
                                     </div>
                                 </div>
-                                <button onclick="updateMainDashboard()" class="self-end bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700">Run Report</button>
+                                <button onclick="updateMainDashboard()" class="self-end bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700">Run Report for All</button>
                             </div>
                             <div id="main-dashboard-table-container" class="bg-white p-8 rounded-lg shadow-md overflow-x-auto">
                                 <table class="min-w-full text-sm">
@@ -580,10 +580,11 @@
                                             <th>Branch Name</th>
                                             <th>Net VAT Amount</th>
                                             <th>Net VAT Status</th>
+                                            <th class="text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="main-dashboard-table">
-                                        <tr><td colspan="3" class="text-center text-gray-500">Select a period and click 'Run Report'</td></tr>
+                                        <tr><td colspan="4" class="text-center text-gray-500">Choose a period, then press “Run Report for All” or run a single branch.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2972,7 +2973,7 @@
                     <button type="button" onclick="toggleDocsRangePanel()" class="text-[11px] text-white/85 hover:text-white truncate flex items-center gap-1" title="Change the period or date range"><span id="branch-docs-branch">—</span> &middot; <span id="branch-docs-period">—</span> <i class="fas fa-chevron-down text-[9px] opacity-80"></i></button>
                 </div>
             </div>
-            <button type="button" onclick="loadBranchDocs(true)" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            <button type="button" onclick="loadBranchDocs(true, true)" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
         </div>
 
         <!-- In-page period / date range switcher -->
@@ -3338,20 +3339,6 @@
 
         const refNorm = (value) => String(value == null ? '' : value).toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-        const refDistance = (a, b) => {
-            if (a === b) return 0;
-            if (!a.length) return b.length;
-            if (!b.length) return a.length;
-            let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-            for (let i = 1; i <= a.length; i++) {
-                const row = [i];
-                for (let j = 1; j <= b.length; j++) {
-                    row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-                }
-                prev = row;
-            }
-            return prev[b.length];
-        };
 
         // References are compared after upper-casing and dropping spaces and
         // punctuation, so "abc 123" and "ABC-123" are treated as the same.
@@ -3392,23 +3379,6 @@
                 }
             }
 
-            for (const want of wanted) {
-                const wantNorm = refNorm(want.value);
-                if (!wantNorm) continue;
-                for (const row of rows) {
-                    const other = String(row[want.field] || '').trim();
-                    const otherNorm = refNorm(other);
-                    if (!otherNorm || otherNorm === wantNorm) continue;
-                    const maxLen = Math.max(wantNorm.length, otherNorm.length);
-                    if (maxLen < 4) continue;
-                    const dist = refDistance(wantNorm, otherNorm);
-                    const allowed = maxLen <= 8 ? 1 : 2;
-                    if (dist <= allowed && (1 - dist / maxLen) >= 0.8) {
-                        result.similar.push({ label: want.label, value: want.value, existing: other });
-                        break;
-                    }
-                }
-            }
 
             return result;
         };
@@ -4682,78 +4652,132 @@
     return individualBalances;
 };
             
-            window.updateMainDashboard = async () => {
-                const { startISO, endISO, periodName } = getFilterDates('main-');
+            window.mainDashboardResults = {};
+            window.mainDashboardPeriodKey = '';
+            window.mainDashboardBusy = false;
+
+            const mainDashboardStatus = (value) => {
+                if (value < 0) return { text: 'Receivable', cls: 'text-green-600 font-medium' };
+                if (value > 0) return { text: 'Payable', cls: 'text-red-600 font-medium' };
+                return { text: 'Zero', cls: 'text-gray-600' };
+            };
+
+            window.renderMainDashboard = () => {
                 const tableBody = document.getElementById('main-dashboard-table');
-                document.getElementById('main-dashboard-period-display').textContent = `Current Period: ${periodName}`;
-                tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-indigo-500">Calculating...</td></tr>';
-                
-                if (window.branchList.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">No branches configured.</td></tr>';
+                if (!tableBody) return;
+                if (!window.branchList.length) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No branches configured.</td></tr>';
                     return;
                 }
-                
-                const results = [];
-                for (const branch of window.branchList) {
-                    try {
-                        const { netVat } = await calculateVATTotals(branch.name, startISO, endISO);
-                        results.push({ name: branch.name, netVat });
-                    } catch (error) {
-                        console.error(`Error calculating VAT for branch ${branch.name}:`, error);
-                        results.push({ name: branch.name, netVat: 'Error' });
-                    }
-                }
-
+                const results = window.mainDashboardResults || {};
                 let totalNetVat = 0;
-                tableBody.innerHTML = '';
-                
-                results.forEach(result => {
-                    const netVatAmount = parseFloat(result.netVat) || 0;
-                    totalNetVat += netVatAmount;
-                    
-                    let statusClass = 'text-gray-600';
-                    let statusText = 'N/A';
-
-                    if (netVatAmount < 0) {
-                        statusText = 'Receivable';
-                        statusClass = 'text-green-600 font-medium';
-                    } else if (netVatAmount > 0) {
-                        statusText = 'Payable';
-                        statusClass = 'text-red-600 font-medium';
-                    } else {
-                        statusText = 'Zero';
+                let computedAny = false;
+                const rows = window.branchList.map((branch, idx) => {
+                    const has = Object.prototype.hasOwnProperty.call(results, branch.name);
+                    const value = has ? (parseFloat(results[branch.name]) || 0) : 0;
+                    let amountCell = '<span class="text-gray-400">Not run</span>';
+                    let statusCell = '<span class="text-gray-400">—</span>';
+                    if (has) {
+                        computedAny = true;
+                        totalNetVat += value;
+                        const s = mainDashboardStatus(value);
+                        amountCell = '<span class="font-semibold">' + Math.abs(value).toFixed(2) + ' AED</span>';
+                        statusCell = '<span class="' + s.cls + '">' + s.text + '</span>';
                     }
+                    return '<tr class="border-t border-gray-100 hover:bg-slate-50">'
+                        + '<td class="py-2 pr-3">' + teamEsc(branch.name) + '</td>'
+                        + '<td>' + amountCell + '</td>'
+                        + '<td>' + statusCell + '</td>'
+                        + '<td class="text-right whitespace-nowrap"><button type="button" onclick="updateMainDashboardByIndex(' + idx + ')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50"><i class="fas fa-play mr-1"></i>Run Report</button></td>'
+                        + '</tr>';
+                }).join('');
 
-                    const row = tableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${result.name}</td>
-                        <td class="font-semibold">${Math.abs(netVatAmount).toFixed(2)} AED</td>
-                        <td class="${statusClass}">${statusText}</td>
-                    `;
-                });
+                let totalRow = '';
+                if (computedAny) {
+                    let cls = 'text-gray-600';
+                    let text = 'ZERO';
+                    if (totalNetVat < 0) { text = 'RECEIVABLE'; cls = 'text-green-600'; }
+                    else if (totalNetVat > 0) { text = 'PAYABLE'; cls = 'text-red-600'; }
+                    totalRow = '<tr class="bg-gray-100 font-bold border-t-2 border-indigo-500">'
+                        + '<td>CONSOLIDATED TOTAL</td>'
+                        + '<td class="font-bold">' + Math.abs(totalNetVat).toFixed(2) + ' AED</td>'
+                        + '<td class="' + cls + '">' + text + '</td>'
+                        + '<td></td></tr>';
+                }
+                tableBody.innerHTML = rows + totalRow;
+            };
 
-                const totalRow = tableBody.insertRow();
-                totalRow.className = 'bg-gray-100 font-bold border-t-2 border-indigo-500';
-                
-                let consolidatedStatusClass = 'text-gray-600';
-                let consolidatedStatusText = 'Zero';
-                if (totalNetVat < 0) {
-                    consolidatedStatusText = 'RECEIVABLE';
-                    consolidatedStatusClass = 'text-green-600';
-                } else if (totalNetVat > 0) {
-                    consolidatedStatusText = 'PAYABLE';
-                    consolidatedStatusClass = 'text-red-600';
+            window.showMainDashboardIdle = () => {
+                const { startISO, endISO, periodName } = getFilterDates('main-');
+                const periodEl = document.getElementById('main-dashboard-period-display');
+                if (periodEl) periodEl.textContent = 'Current Period: ' + periodName;
+                const key = startISO + '|' + endISO;
+                if (key !== window.mainDashboardPeriodKey) {
+                    window.mainDashboardPeriodKey = key;
+                    window.mainDashboardResults = {};
+                    const tableBody = document.getElementById('main-dashboard-table');
+                    if (tableBody) {
+                        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Choose a period, then press “Run Report for All” or run a single branch.</td></tr>';
+                    }
+                    return;
+                }
+                if (Object.keys(window.mainDashboardResults || {}).length) window.renderMainDashboard();
+            };
+
+            window.updateMainDashboardByIndex = (idx) => {
+                const branch = window.branchList[idx];
+                if (branch) window.updateMainDashboard(branch.name);
+            };
+
+            window.updateMainDashboard = async (onlyBranchName) => {
+                if (window.mainDashboardBusy) return;
+                const { startISO, endISO, periodName } = getFilterDates('main-');
+                const tableBody = document.getElementById('main-dashboard-table');
+                const periodEl = document.getElementById('main-dashboard-period-display');
+                if (periodEl) periodEl.textContent = 'Current Period: ' + periodName;
+
+                if (!window.branchList.length) {
+                    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No branches configured.</td></tr>';
+                    return;
                 }
 
-                totalRow.innerHTML = `
-                    <td>CONSOLIDATED TOTAL</td>
-                    <td class="font-bold">${Math.abs(totalNetVat).toFixed(2)} AED</td>
-                    <td class="${consolidatedStatusClass}">${consolidatedStatusText}</td>
-                `;
+                const key = startISO + '|' + endISO;
+                if (key !== window.mainDashboardPeriodKey) {
+                    window.mainDashboardPeriodKey = key;
+                    window.mainDashboardResults = {};
+                }
 
-            };
-            
-            window.updateBranchDashboard = async () => {
+                const targets = onlyBranchName
+                    ? window.branchList.filter((b) => b.name === onlyBranchName)
+                    : window.branchList.slice();
+                if (!targets.length) return;
+
+                window.mainDashboardBusy = true;
+                if (tableBody) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-indigo-500">Calculating ' + (onlyBranchName ? teamEsc(onlyBranchName) : 'all branches') + '…</td></tr>';
+                }
+
+                try {
+                    const calculated = await Promise.all(targets.map(async (branch) => {
+                        try {
+                            const { netVat } = await calculateVATTotals(branch.name, startISO, endISO);
+                            return { name: branch.name, netVat: parseFloat(netVat) || 0 };
+                        } catch (error) {
+                            console.error('Error calculating VAT for branch ' + branch.name + ':', error);
+                            return { name: branch.name, netVat: null };
+                        }
+                    }));
+                    calculated.forEach((r) => {
+                        if (r.netVat === null) delete window.mainDashboardResults[r.name];
+                        else window.mainDashboardResults[r.name] = r.netVat;
+                    });
+                } catch (e) {
+                    console.error('Main dashboard calculation failed:', e);
+                } finally {
+                    window.mainDashboardBusy = false;
+                }
+                window.renderMainDashboard();
+            };            window.updateBranchDashboard = async () => {
                 if (!window.selectedBranch) return; 
                 const { startISO, endISO, periodName } = getFilterDates('');
                 document.getElementById('branch-dashboard-period-display').textContent = `Current Period: ${periodName}`;
@@ -5656,18 +5680,6 @@
                             return;
                         }
 
-                        for (const ask of refCheck.similar) {
-                            const same = await window.customConfirm(
-                                `A similar ${ask.label} already exists: "${ask.existing}".\n\nIs "${ask.value}" the same voucher? Please check before saving.`,
-                                'Please check this reference'
-                            );
-                            if (same) {
-                                customAlert(`The ${ask.label} "${ask.value}" matches an existing voucher ("${ask.existing}"). Please use a unique reference number.`, 'Duplicate Reference');
-                                submitButton.disabled = false;
-                                submitButton.textContent = originalSubmitText.replace('Saving...','Save');
-                                return;
-                            }
-                        }
                     }
                     // --- END: DUPLICATE REFERENCE CHECK ---
                     
@@ -5989,6 +6001,7 @@
                                 docId: docId || ''
                             });
                         } catch (logErr) { console.warn('Log write failed:', logErr); }
+                        if (window.invalidateBranchDocsCache) window.invalidateBranchDocsCache();
 
                         if (replacedAssets.length) {
                             await window.VatFiles.removeReplaced(replacedAssets);
@@ -10250,7 +10263,7 @@
             }
             document.getElementById('page-title').innerText = title;
 
-            if (formName === 'mainDashboard') window.updateMainDashboard();
+            if (formName === 'mainDashboard') window.showMainDashboardIdle();
             else if (formName === 'branchDashboard') window.updateBranchDashboard();
             else if (formName.includes('Ledger') && formName !== 'partyLedgerList' && formName !== 'detailedPartyLedger') {
                 let collectionName;
@@ -10298,7 +10311,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -11412,6 +11425,8 @@ const CORP_BUILD_VERSION = APP_VERSION;
         ];
 
         let branchDocsBusy = false;
+        const branchDocsCache = new Map();
+        window.invalidateBranchDocsCache = () => branchDocsCache.clear();
 
         const branchDocHas = (voucher, doc) => String(voucher[doc.field] || "").trim() !== "";
 
@@ -11539,7 +11554,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             if (typeof window.toggleDashboardFilters === "function") window.toggleDashboardFilters("");
             window.closeDocsRangePanel();
             if (typeof window.updateBranchDashboard === "function") window.updateBranchDashboard();
-            loadBranchDocs(true);
+            loadBranchDocs(true, true);
         };
 
         const setDocsBackButtons = (on) => {
@@ -11581,7 +11596,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             if (summary) summary.classList.add("hidden");
             if (detail) detail.classList.remove("hidden");
             renderBranchDocsDetail();
-            loadBranchDocs(true);
+            loadBranchDocs(true, true);
         };
 
         window.renderBranchDocsDetail = () => {
@@ -11595,7 +11610,13 @@ const CORP_BUILD_VERSION = APP_VERSION;
             const title = document.getElementById("branch-docs-detail-title");
             if (title) title.textContent = g.label;
             const meta = document.getElementById("branch-docs-detail-meta");
-            if (meta) meta.textContent = res.total + " voucher(s) · documents: " + g.docs.map((d) => d.name).join(" + ");
+            if (meta) meta.textContent = res.total + " voucher(s) · documents: " + g.docs.map((d) => d.name).join(" + ")
+                + (listLengthNote());
+
+            function listLengthNote() {
+                const total = branchDocsTab === "available" ? available.length : remaining.length;
+                return total > 500 ? " · first 500 shown" : "";
+            }
 
             const countA = document.getElementById("branch-docs-tab-available-count");
             const countR = document.getElementById("branch-docs-tab-remaining-count");
@@ -11630,7 +11651,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             }
             if (empty) empty.classList.add("hidden");
 
-            tbody.innerHTML = list.map((v, i) => {
+            tbody.innerHTML = list.slice(0, 500).map((v, i) => {
                 const pills = g.docs.map((d) => {
                     const has = branchDocHas(v, d);
                     return has
@@ -11670,7 +11691,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
             closeBranchDocsDetail();
         };
 
-        window.loadBranchDocs = async (showSpinner) => {
+        window.loadBranchDocs = async (showSpinner, force = false) => {
             if (branchDocsBusy) return;
             const summary = document.getElementById("branch-docs-summary");
             const cards = document.getElementById("branch-docs-cards");
@@ -11694,8 +11715,17 @@ const CORP_BUILD_VERSION = APP_VERSION;
             branchDocsBusy = true;
 
             try {
-                const results = [];
-                for (const group of BRANCH_DOC_GROUPS) {
+                const cacheKey = [branchName, startISO, endISO, filterType].join("|");
+                const cached = force ? null : branchDocsCache.get(cacheKey);
+                if (cached) {
+                    branchDocsResults = cached;
+                    renderBranchDocs(cached, periodName);
+                    return;
+                }
+
+                // All six collections are read in parallel; the cache keeps
+                // re-opening the page instant within the same session.
+                const results = await Promise.all(BRANCH_DOC_GROUPS.map(async (group) => {
                     const constraints = [where("branch", "==", branchName)];
                     if (filterType !== "total" && startISO && endISO) {
                         constraints.push(where("date", ">=", startISO));
@@ -11717,9 +11747,10 @@ const CORP_BUILD_VERSION = APP_VERSION;
                     });
                     const complete = vouchers.filter((v) => group.docs.every((doc) => branchDocHas(v, doc))).length;
 
-                    results.push({ group: group, total: total, perDoc: perDoc, complete: complete, vouchers: vouchers });
-                }
+                    return { group: group, total: total, perDoc: perDoc, complete: complete, vouchers: vouchers };
+                }));
 
+                branchDocsCache.set(cacheKey, results);
                 branchDocsResults = results;
                 renderBranchDocs(results, periodName);
             } catch (e) {
