@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.16</title>
+    <title>CORPOVAT ELITE V1.18</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -361,7 +361,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.16</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.18</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -430,7 +430,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.16</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.18</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -660,6 +660,7 @@
                                             <h3 class="text-teal-800 text-sm font-medium">VAT Returns Submitted</h3>
                                             <p class="text-2xl font-semibold text-teal-900 mt-2"><i class="fas fa-file-invoice-dollar mr-2"></i>Open</p>
                                             <p class="text-xs text-teal-700 mt-1">Quarter-wise VAT returns for the selected branch</p>
+                                            <p id="vat-current-period" class="text-xs font-semibold text-teal-800 mt-1">&mdash;</p>
                                         </div>
                                         <i class="fas fa-arrow-right text-teal-600 text-xl"></i>
                                     </div>
@@ -670,6 +671,7 @@
                                             <h3 class="text-slate-800 text-sm font-medium">Corporate Reports Submitted</h3>
                                             <p class="text-2xl font-semibold text-slate-900 mt-2"><i class="fas fa-building mr-2"></i>Open</p>
                                             <p class="text-xs text-slate-600 mt-1">Confirmed &amp; draft corporate reports for this branch</p>
+                                            <p id="corp-current-period" class="text-xs font-semibold text-slate-800 mt-1">&mdash;</p>
                                         </div>
                                         <i class="fas fa-arrow-right text-slate-500 text-xl"></i>
                                     </div>
@@ -3415,7 +3417,13 @@
                     const path = (col) => `users/${window.currentUserId}/${col}`;
                     let successfulMessage = 'Voucher removed.';
                     
-                    const originalDocId = mirroredFrom || id; 
+                    const originalDocId = mirroredFrom || id;
+
+                    let deletedData = {};
+                    try {
+                        const snap = await getDoc(doc(db, path(collectionName), id));
+                        if (snap.exists()) deletedData = snap.data();
+                    } catch (readErr) { console.warn('Could not read the voucher before deleting:', readErr); } 
 
                     const getCounterpartyCollection = (currentCollection) => {
                         if (currentCollection.includes('sales')) return 'purchaseVouchers';
@@ -3440,13 +3448,33 @@
                     }
 
                     await deleteDoc(doc(db, path(collectionName), id));
+                    const typeLabel = collectionName === 'vatRefunds'
+                        ? 'VAT Refund'
+                        : ((window.VOUCHER_TYPE_LABELS && window.VOUCHER_TYPE_LABELS[collectionName]) || 'Voucher');
+
+                    // Remove the invoice / ED / voucher files that belonged to it.
+                    const filesToRemove = [];
+                    ['invoice', 'ed', 'voucher', 'statement'].forEach((k) => {
+                        const fileUrl = deletedData[k + 'FileUrl'];
+                        const fileUuid = deletedData[k + 'FileUuid'];
+                        if (fileUrl || fileUuid) filesToRemove.push({ url: fileUrl || '', uuid: fileUuid || '' });
+                    });
+                    if (filesToRemove.length && window.VatFiles) {
+                        try { await window.VatFiles.removeReplaced(filesToRemove); }
+                        catch (fileErr) { console.warn('Could not delete the attached files:', fileErr); }
+                    }
+                    if (window.invalidateBranchDocsCache) window.invalidateBranchDocsCache();
+
                     window.logActivity({
                         action: 'delete',
-                        entityType: collectionName === 'vatRefunds' ? 'VAT Refund' : 'Voucher',
+                        entityType: typeLabel,
                         entity: collectionName,
-                        ref: id,
-                        branch: window.selectedBranch || '',
-                        detail: 'Deleted voucher ' + id,
+                        ref: deletedData.ourRef || deletedData.customerRef || deletedData.edRef || id,
+                        branch: deletedData.branch || window.selectedBranch || '',
+                        detail: 'Deleted ' + typeLabel
+                            + (deletedData.partyName || deletedData.customerName ? ' · ' + (deletedData.partyName || deletedData.customerName) : '')
+                            + (deletedData.totalAmount != null ? ' · ' + deletedData.totalAmount : (deletedData.amount != null ? ' · ' + deletedData.amount : ''))
+                            + ' · doc ' + id,
                         docId: id
                     });
                     customAlert(successfulMessage, 'Success');
@@ -3596,6 +3624,10 @@
                     toggleFileUpload(idPrefix);
                 });
 
+
+                if (formPrefix === 'export' && typeof window.setExportInvoiceRows === 'function') {
+                    window.setExportInvoiceRows(Array.isArray(data.invoices) ? data.invoices : []);
+                }
 
                 const auditEl = document.getElementById(`${formPrefix}-audit`);
                 if (auditEl) {
@@ -4098,6 +4130,14 @@
                     <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700">Main Item</label><input type="text" name="mainItem" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
                     <div><label class="block text-sm font-medium text-gray-700">Total Amount</label><input type="number" step="0.01" name="totalAmount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
                     <div><label class="block text-sm font-medium text-gray-700">Inv. Count</label><input type="number" name="invoiceCount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></div>
+                    <div class="md:col-span-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Invoices under this ED</label>
+                            <button type="button" onclick="addExportInvoiceRow()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-plus mr-1"></i>Add invoice</button>
+                        </div>
+                        <div id="export-invoice-rows" class="space-y-2"></div>
+                        <p class="text-[11px] text-gray-500 mt-1">Add one line per invoice. Total Amount and Inv. Count are filled automatically.</p>
+                    </div>
                 `,
                 fileFields: [ { name: 'ed', label: 'ED' }, { name: 'invoice', label: 'Invoice' } ]
             }
@@ -4139,6 +4179,10 @@
                     <form id="${prefix}-form" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                             ${config.fields}
+                            <div class="md:col-span-3">
+                                <label class="block text-sm font-medium text-gray-700">Narration</label>
+                                <textarea name="narration" rows="2" placeholder="Optional note for this voucher" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"></textarea>
+                            </div>
                             ${fileFieldsHTML}
                         </div>
                         <div class="flex justify-end">
@@ -4158,6 +4202,7 @@
                 window.clearVoucherFileNotes(form);
                 const auditReset = document.getElementById(`${prefix}-audit`);
                 if (auditReset) auditReset.classList.add("hidden");
+                if (typeof window.resetExportInvoiceRows === "function") window.resetExportInvoiceRows();
             }
             if (window.docsReturnState) {
                 window.returnToDocsAfterVoucher();
@@ -4252,6 +4297,85 @@
             });
             form.querySelectorAll('[id$="-pick-btn"]').forEach((btn) => { btn.textContent = "Choose File"; });
             form.querySelectorAll('[id$="-pick-name"]').forEach((span) => { span.textContent = "No file chosen"; });
+        };
+
+        // ── Export voucher: several invoices under one ED ─────────────
+        window.addExportInvoiceRow = (ref, amount) => {
+            const box = document.getElementById('export-invoice-rows');
+            if (!box) return;
+            const row = document.createElement('div');
+            row.className = 'export-invoice-row flex flex-col sm:flex-row gap-2 items-stretch';
+
+            const refInput = document.createElement('input');
+            refInput.type = 'text';
+            refInput.placeholder = 'Invoice ref / no.';
+            refInput.value = ref == null ? '' : String(ref);
+            refInput.className = 'block w-full rounded-md border-gray-300 shadow-sm p-2 sm:flex-1';
+            refInput.setAttribute('data-inv-ref', '1');
+
+            const amtInput = document.createElement('input');
+            amtInput.type = 'number';
+            amtInput.step = '0.01';
+            amtInput.placeholder = 'Amount';
+            amtInput.value = (amount === '' || amount == null) ? '' : String(amount);
+            amtInput.className = 'block w-full rounded-md border-gray-300 shadow-sm p-2 sm:w-40';
+            amtInput.setAttribute('data-inv-amount', '1');
+            amtInput.addEventListener('input', window.syncExportInvoiceTotals);
+
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'shrink-0 px-3 py-2 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100';
+            del.title = 'Remove invoice';
+            del.innerHTML = '<i class="fas fa-trash"></i>';
+            del.addEventListener('click', () => {
+                row.remove();
+                window.syncExportInvoiceTotals();
+            });
+
+            row.appendChild(refInput);
+            row.appendChild(amtInput);
+            row.appendChild(del);
+            box.appendChild(row);
+        };
+
+        window.removeExportInvoiceRow = (btn) => {
+            const row = btn && btn.closest ? btn.closest('.export-invoice-row') : null;
+            if (row) row.remove();
+            window.syncExportInvoiceTotals();
+        };
+
+        window.syncExportInvoiceTotals = () => {
+            const box = document.getElementById('export-invoice-rows');
+            if (!box) return;
+            const rows = Array.from(box.querySelectorAll('.export-invoice-row'));
+            const filled = rows.filter((row) => {
+                const r = row.querySelector('[data-inv-ref]');
+                const a = row.querySelector('[data-inv-amount]');
+                return (r && r.value.trim()) || (a && a.value.trim());
+            });
+            if (!filled.length) return; // keep manual values when no lines were added
+            let total = 0;
+            filled.forEach((row) => {
+                const a = row.querySelector('[data-inv-amount]');
+                total += parseFloat(a && a.value) || 0;
+            });
+            const totalInput = document.getElementById('export-totalAmount');
+            if (totalInput) totalInput.value = total.toFixed(2);
+            const countInput = document.getElementById('export-invoiceCount');
+            if (countInput) countInput.value = String(filled.length);
+        };
+
+        window.resetExportInvoiceRows = () => {
+            const box = document.getElementById('export-invoice-rows');
+            if (box) box.innerHTML = '';
+        };
+
+        window.setExportInvoiceRows = (list) => {
+            window.resetExportInvoiceRows();
+            (Array.isArray(list) ? list : []).forEach((inv) => {
+                window.addExportInvoiceRow(inv && inv.ref != null ? inv.ref : '', inv && inv.amount != null ? inv.amount : '');
+            });
+            window.syncExportInvoiceTotals();
         };
 
         window.updatePickName = (idPrefix, fallbackName) => {
@@ -4778,6 +4902,7 @@
                 if (!window.selectedBranch) return; 
                 const { startISO, endISO, periodName } = getFilterDates('');
                 document.getElementById('branch-dashboard-period-display').textContent = `Current Period: ${periodName}`;
+            if (typeof window.updateSubmissionPeriodHints === 'function') window.updateSubmissionPeriodHints();
 
                 const period = document.getElementById('filter-type').value;
 
@@ -5788,6 +5913,27 @@
                             data.contactNumbers = formData.getAll('contactNumber').filter(n => n);
                             delete data.contactNumber;
                         }
+
+                        if (formId === 'export-form') {
+                            const invoiceBox = document.getElementById('export-invoice-rows');
+                            if (invoiceBox) {
+                                const lines = Array.from(invoiceBox.querySelectorAll('.export-invoice-row'))
+                                    .map((row) => {
+                                        const r = row.querySelector('[data-inv-ref]');
+                                        const a = row.querySelector('[data-inv-amount]');
+                                        return {
+                                            ref: r ? r.value.trim() : '',
+                                            amount: parseFloat(a && a.value) || 0
+                                        };
+                                    })
+                                    .filter((inv) => inv.ref || inv.amount);
+                                data.invoices = lines;
+                                if (lines.length) {
+                                    data.totalAmount = lines.reduce((sum, inv) => sum + inv.amount, 0);
+                                    data.invoiceCount = lines.length;
+                                }
+                            }
+                        }
                         
                         if (collectionName.includes('Vouchers') || collectionName === 'vatSubmissionRecords' || collectionName === 'vatRefunds') {
                             
@@ -5982,7 +6128,7 @@
                         
                         try {
                             const isVoucherLog = collectionName.includes('Vouchers');
-                            const entityType = isVoucherLog ? 'Voucher'
+                            const entityType = isVoucherLog ? ((window.VOUCHER_TYPE_LABELS && window.VOUCHER_TYPE_LABELS[collectionName]) || 'Voucher')
                                 : collectionName === 'branches' ? 'Branch'
                                 : collectionName === 'customers' ? 'Customer'
                                 : collectionName === 'vatSubmissionRecords' ? 'VAT Submission'
@@ -6036,6 +6182,7 @@
                             toggleFileUpload(idPrefix); 
                         });
                         window.clearVoucherFileNotes(form);
+                        if (typeof window.resetExportInvoiceRows === "function") window.resetExportInvoiceRows();
 
                         form.querySelectorAll('[id*="-vat-on-invoice"]').forEach(input => {
                             input.classList.remove('bg-vat-match', 'bg-vat-mismatch');
@@ -10245,6 +10392,7 @@
                     window.clearVoucherFileNotes(form);
                     const auditReset = document.getElementById(`${formName}-audit`);
                     if (auditReset) auditReset.classList.add("hidden");
+                    if (typeof window.resetExportInvoiceRows === "function") window.resetExportInvoiceRows();
                     const submitButton = form.querySelector('button[type="submit"]');
                     if (submitButton) submitButton.textContent = voucherConfigs[formName].submitText;
                 }
@@ -10309,7 +10457,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.18';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -11400,6 +11548,101 @@ const CORP_BUILD_VERSION = APP_VERSION;
             document.getElementById('customer-list-container').classList.toggle('hidden');
         };
 
+        // ── Current VAT / corporate filing period hints ───────────────────
+        const PERIOD_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const periodHintFmt = (d) => String(d.getDate()).padStart(2, '0') + ' ' + PERIOD_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+
+        const buildQuarterPeriods = (branch, count) => {
+            const startVal = branch && branch.vatFilingPeriodStart;
+            if (!startVal) return [];
+            const start = new Date(startVal + 'T00:00:00');
+            if (isNaN(start.getTime())) return [];
+            const firstEnd = branch.vatFilingPeriodEnd ? new Date(branch.vatFilingPeriodEnd + 'T00:00:00') : null;
+            const periods = [];
+            let qStart = new Date(start);
+            for (let i = 0; i < (count || 48); i++) {
+                let qEnd;
+                if (i === 0 && firstEnd && !isNaN(firstEnd.getTime()) && firstEnd > qStart) {
+                    qEnd = new Date(firstEnd);
+                } else {
+                    qEnd = new Date(qStart);
+                    qEnd.setMonth(qEnd.getMonth() + 3);
+                    qEnd.setDate(qEnd.getDate() - 1);
+                }
+                periods.push({ start: new Date(qStart), end: new Date(qEnd) });
+                qStart = new Date(qEnd);
+                qStart.setDate(qStart.getDate() + 1);
+                if (qStart.getFullYear() > new Date().getFullYear() + 3) break;
+            }
+            return periods;
+        };
+
+        const buildCorporatePeriods = (branch, count) => {
+            const startVal = branch && branch.corporatePeriodStart;
+            if (!startVal) return [];
+            const start = new Date(startVal + 'T00:00:00');
+            if (isNaN(start.getTime())) return [];
+            const firstEnd = branch.corporatePeriodEnd ? new Date(branch.corporatePeriodEnd + 'T00:00:00') : null;
+            const periods = [];
+            let pStart = new Date(start);
+            for (let i = 0; i < (count || 24); i++) {
+                let pEnd;
+                if (i === 0 && firstEnd && !isNaN(firstEnd.getTime()) && firstEnd > pStart) {
+                    pEnd = new Date(firstEnd);
+                } else {
+                    pEnd = new Date(pStart);
+                    pEnd.setFullYear(pEnd.getFullYear() + 1);
+                    pEnd.setDate(pEnd.getDate() - 1);
+                }
+                periods.push({ start: new Date(pStart), end: new Date(pEnd) });
+                pStart = new Date(pEnd);
+                pStart.setDate(pStart.getDate() + 1);
+                if (pStart.getFullYear() > new Date().getFullYear() + 4) break;
+            }
+            return periods;
+        };
+
+        const describeFilingPeriod = (periods, label) => {
+            if (!periods || !periods.length) return label + ' set the first period in Manage Branches';
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const current = periods.find((p) => today >= p.start && today <= p.end);
+            if (!current) {
+                const upcoming = periods.find((p) => p.start > today);
+                if (!upcoming) return label + ' no open period found';
+                const days = Math.round((upcoming.start - today) / 86400000);
+                return label + ' ' + periodHintFmt(upcoming.start) + ' – ' + periodHintFmt(upcoming.end) +
+                    ' · starts in ' + days + ' day' + (days === 1 ? '' : 's');
+            }
+            const days = Math.round((current.end - today) / 86400000);
+            const dayText = days > 0
+                ? days + ' day' + (days === 1 ? '' : 's') + ' remaining'
+                : (days === 0 ? 'due today' : 'overdue by ' + Math.abs(days) + ' day' + (Math.abs(days) === 1 ? '' : 's'));
+            return label + ' ' + periodHintFmt(current.start) + ' – ' + periodHintFmt(current.end) + ' · ' + dayText;
+        };
+
+        window.updateSubmissionPeriodHints = () => {
+            const branch = (window.branchList || []).find((b) => b.name === window.selectedBranch) || null;
+            const vatEl = document.getElementById('vat-current-period');
+            const corpEl = document.getElementById('corp-current-period');
+
+            const paint = (el, text, normalCls) => {
+                if (!el) return;
+                el.textContent = text;
+                const extra = /overdue/.test(text) ? 'text-red-600'
+                    : (/due today|starts in/.test(text) ? 'text-amber-600' : normalCls);
+                el.className = 'text-xs font-semibold mt-1 ' + extra;
+            };
+
+            if (!branch) {
+                paint(vatEl, 'Select a branch to see its VAT period.', 'text-teal-800');
+                paint(corpEl, 'Select a branch to see its corporate period.', 'text-slate-800');
+                return;
+            }
+            paint(vatEl, describeFilingPeriod(buildQuarterPeriods(branch), 'Current VAT period:'), 'text-teal-800');
+            paint(corpEl, describeFilingPeriod(buildCorporatePeriods(branch), 'Current corporate period:'), 'text-slate-800');
+        };
+
         // ══════════════════════════════════════════════════════════════
         // Documents Details — what is saved and what is still missing
         // ══════════════════════════════════════════════════════════════
@@ -11815,6 +12058,15 @@ const CORP_BUILD_VERSION = APP_VERSION;
         // ══════════════════════════════════════════════════════════════
         window.actorName = () => (window.currentTeamMember && window.currentTeamMember.name) || 'Owner';
 
+        window.VOUCHER_TYPE_LABELS = {
+            salesVouchers: 'Sales Voucher',
+            purchaseVouchers: 'Purchase Voucher',
+            paymentVouchers: 'Payment Voucher',
+            receiptVouchers: 'Receipt Voucher',
+            importVouchers: 'Import Voucher',
+            exportVouchers: 'Export Voucher'
+        };
+
         window.logActivity = async (entry) => {
             if (!window.currentUserId) return;
             try {
@@ -11861,6 +12113,11 @@ const CORP_BUILD_VERSION = APP_VERSION;
                 return;
             }
             window.renderActivityLogs();
+        };
+
+        const activityEntityLabel = (l) => {
+            const mapped = window.VOUCHER_TYPE_LABELS && window.VOUCHER_TYPE_LABELS[l.entity];
+            return mapped || l.entityType || '—';
         };
 
         window.renderActivityLogs = () => {
@@ -11916,7 +12173,7 @@ const CORP_BUILD_VERSION = APP_VERSION;
                     + '<td class="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">' + teamEsc(activityFormatTime(l.at)) + '</td>'
                     + '<td class="px-3 py-2 text-gray-800 font-semibold">' + teamEsc(l.actor || 'Owner') + '</td>'
                     + '<td class="px-3 py-2">' + badge(l.action) + '</td>'
-                    + '<td class="px-3 py-2 text-gray-700">' + teamEsc(l.entityType || '') + '</td>'
+                    + '<td class="px-3 py-2 text-gray-700">' + teamEsc(activityEntityLabel(l)) + '</td>'
                     + '<td class="px-3 py-2 font-mono text-xs text-gray-700">' + teamEsc(l.ref || '—') + '</td>'
                     + '<td class="px-3 py-2 text-gray-700">' + teamEsc(l.branch || '—') + '</td>'
                     + '<td class="px-3 py-2 text-gray-600">' + teamEsc(l.detail || '') + '</td>'
