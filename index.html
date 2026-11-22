@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.5</title>
+    <title>CORPOVAT ELITE V1.6</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -261,7 +261,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.5</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.6</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -303,7 +303,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.5</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.6</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -543,6 +543,16 @@
                                             <p class="text-xs text-slate-600 mt-1">Confirmed &amp; draft corporate reports for this branch</p>
                                         </div>
                                         <i class="fas fa-arrow-right text-slate-500 text-xl"></i>
+                                    </div>
+                                </div>
+                                <div class="dashboard-card bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-300 cursor-pointer lg:col-span-4" onclick="openBranchDocsView()">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="text-indigo-800 text-sm font-medium">Documents Details</h3>
+                                            <p class="text-2xl font-semibold text-indigo-900 mt-2"><i class="fas fa-folder-open mr-2"></i>Open</p>
+                                            <p class="text-xs text-indigo-700 mt-1">Invoices, EDs and voucher documents — saved vs. still missing for this branch and period</p>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-indigo-500 text-xl"></i>
                                     </div>
                                 </div>
                             </div>
@@ -2780,6 +2790,47 @@
                         </table>
                     </div>
                     <div id="team-empty" class="hidden p-6 text-center text-gray-500 text-sm">No team members yet — use “Add Team Member”.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Details — full-page bleeding view -->
+    <div id="branch-docs-overlay" class="hidden fixed inset-0 z-[96] bg-slate-100 flex-col">
+        <div class="flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-indigo-700 to-violet-600 text-white shadow-md shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" onclick="closeBranchDocsView()" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+                <div class="min-w-0">
+                    <div class="font-semibold text-sm tracking-wide">Documents Details</div>
+                    <div class="text-[11px] text-white/80 truncate"><span id="branch-docs-branch">—</span> &middot; <span id="branch-docs-period">—</span></div>
+                </div>
+            </div>
+            <button type="button" onclick="loadBranchDocs(true)" class="text-xs font-medium bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md transition shrink-0"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="max-w-7xl mx-auto space-y-4">
+                <div id="branch-docs-summary" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-sm text-gray-700">Reading vouchers…</div>
+                <div id="branch-docs-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+                <div id="branch-docs-missing-wrap" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hidden">
+                    <div class="flex items-center justify-between gap-3 p-4 border-b border-gray-100">
+                        <h3 class="text-base font-bold text-gray-900">Vouchers still missing documents</h3>
+                        <span id="branch-docs-missing-count" class="text-xs font-semibold text-rose-600"></span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
+                                <tr>
+                                    <th class="text-left px-4 py-2">Type</th>
+                                    <th class="text-left px-4 py-2">Date</th>
+                                    <th class="text-left px-4 py-2">Reference</th>
+                                    <th class="text-left px-4 py-2">Party</th>
+                                    <th class="text-left px-4 py-2">Missing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="branch-docs-missing"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -9531,7 +9582,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
@@ -10621,6 +10672,205 @@ const CORP_BUILD_VERSION = APP_VERSION;
         window.toggleCustomerList = () => {
             document.getElementById('customer-list-container').classList.toggle('hidden');
         };
+
+        // ══════════════════════════════════════════════════════════════
+        // Documents Details — what is saved and what is still missing
+        // ══════════════════════════════════════════════════════════════
+        const BRANCH_DOC_GROUPS = [
+            { key: "sales", label: "Sales Invoices", collection: "salesVouchers", amountField: "totalAmount",
+              docs: [{ field: "invoiceFileUrl", handling: "invoiceFileHandling", name: "Invoice" }] },
+            { key: "purchase", label: "Purchase Invoices", collection: "purchaseVouchers", amountField: "totalAmount",
+              docs: [{ field: "invoiceFileUrl", handling: "invoiceFileHandling", name: "Invoice" }] },
+            { key: "export", label: "Export Documents", collection: "exportVouchers", amountField: "totalAmount",
+              docs: [{ field: "edFileUrl", handling: "edFileHandling", name: "ED" },
+                     { field: "invoiceFileUrl", handling: "invoiceFileHandling", name: "Invoice" }] },
+            { key: "import", label: "Import Documents", collection: "importVouchers", amountField: "totalAmount",
+              docs: [{ field: "edFileUrl", handling: "edFileHandling", name: "ED" },
+                     { field: "invoiceFileUrl", handling: "invoiceFileHandling", name: "Invoice" }] },
+            { key: "payment", label: "Payment Vouchers", collection: "paymentVouchers", amountField: "amount",
+              docs: [{ field: "voucherFileUrl", handling: "voucherFileHandling", name: "Voucher" },
+                     { field: "statementFileUrl", handling: "statementFileHandling", name: "Statement" }] },
+            { key: "receipt", label: "Receipt Vouchers", collection: "receiptVouchers", amountField: "amount",
+              docs: [{ field: "voucherFileUrl", handling: "voucherFileHandling", name: "Voucher" },
+                     { field: "statementFileUrl", handling: "statementFileHandling", name: "Statement" }] }
+        ];
+
+        let branchDocsBusy = false;
+
+        const branchDocHas = (voucher, doc) => {
+            const url = String(voucher[doc.field] || "").trim();
+            if (url) return true;
+            return String(voucher[doc.handling] || "") === "in_folder";
+        };
+
+        window.openBranchDocsView = () => {
+            const overlay = document.getElementById("branch-docs-overlay");
+            if (!overlay) return;
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
+            loadBranchDocs(true);
+        };
+
+        window.closeBranchDocsView = () => {
+            const overlay = document.getElementById("branch-docs-overlay");
+            if (!overlay) return;
+            overlay.classList.add("hidden");
+            overlay.classList.remove("flex");
+        };
+
+        window.loadBranchDocs = async (showSpinner) => {
+            if (branchDocsBusy) return;
+            const summary = document.getElementById("branch-docs-summary");
+            const cards = document.getElementById("branch-docs-cards");
+            const missingWrap = document.getElementById("branch-docs-missing-wrap");
+            const missingBody = document.getElementById("branch-docs-missing");
+            const branchName = window.selectedBranch;
+            if (!branchName) {
+                if (summary) summary.innerHTML = '<span class="text-rose-600 font-semibold">Select a branch from the header first.</span>';
+                return;
+            }
+
+            const periodInfo = (typeof getFilterDates === "function") ? getFilterDates("") : {};
+            const periodName = periodInfo.periodName || "";
+            const startISO = periodInfo.startISO || "";
+            const endISO = periodInfo.endISO || "";
+            const filterType = (document.getElementById("filter-type") || {}).value || "monthly";
+            const branchEl = document.getElementById("branch-docs-branch");
+            const periodEl = document.getElementById("branch-docs-period");
+            if (branchEl) branchEl.textContent = branchName;
+            if (periodEl) periodEl.textContent = periodName || "All periods";
+
+            if (showSpinner && summary) summary.textContent = "Reading vouchers for this period…";
+            branchDocsBusy = true;
+
+            try {
+                const results = [];
+                for (const group of BRANCH_DOC_GROUPS) {
+                    const constraints = [where("branch", "==", branchName)];
+                    if (filterType !== "total" && startISO && endISO) {
+                        constraints.push(where("date", ">=", startISO));
+                        constraints.push(where("date", "<", endISO));
+                    }
+                    let vouchers = [];
+                    try {
+                        const snap = await getDocs(query(collection(db, path(group.collection)), ...constraints));
+                        vouchers = snap.docs.map((d) => d.data());
+                    } catch (e) {
+                        console.error("Documents details read failed for " + group.collection, e);
+                    }
+
+                    const total = vouchers.length;
+                    const amount = vouchers.reduce((sum, v) => sum + (parseFloat(String(v[group.amountField] || "0").replace(/,/g, "")) || 0), 0);
+                    const perDoc = group.docs.map((doc) => {
+                        let saved = 0;
+                        vouchers.forEach((v) => { if (branchDocHas(v, doc)) saved += 1; });
+                        return { name: doc.name, saved: saved, missing: total - saved };
+                    });
+                    const complete = vouchers.filter((v) => group.docs.every((doc) => branchDocHas(v, doc))).length;
+
+                    results.push({ group: group, total: total, amount: amount, perDoc: perDoc, complete: complete, vouchers: vouchers });
+                }
+
+                renderBranchDocs(results, periodName);
+            } catch (e) {
+                console.error("Documents details failed:", e);
+                if (summary) summary.innerHTML = '<span class="text-rose-600 font-semibold">Could not read the vouchers: ' + teamEsc(e && e.message ? e.message : e) + "</span>";
+            } finally {
+                branchDocsBusy = false;
+            }
+        };
+
+        function renderBranchDocs(results, periodName) {
+            const summary = document.getElementById("branch-docs-summary");
+            const cards = document.getElementById("branch-docs-cards");
+            const missingWrap = document.getElementById("branch-docs-missing-wrap");
+            const missingBody = document.getElementById("branch-docs-missing");
+            const missingCount = document.getElementById("branch-docs-missing-count");
+            if (!cards) return;
+
+            const money = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            let docsRequired = 0;
+            let docsSaved = 0;
+            const missingRows = [];
+
+            cards.innerHTML = results.map((r) => {
+                const g = r.group;
+                const single = g.docs.length === 1;
+                const savedForCard = single ? r.perDoc[0].saved : r.complete;
+                const missingForCard = single ? r.perDoc[0].missing : (r.total - r.complete);
+                docsRequired += r.total * g.docs.length;
+                r.perDoc.forEach((d) => { docsSaved += d.saved; });
+
+                const pct = r.total ? Math.round((savedForCard / r.total) * 100) : 0;
+                const barCls = pct >= 100 ? "bg-emerald-500" : (pct >= 50 ? "bg-amber-500" : "bg-rose-500");
+                const extra = single ? "" : '<div class="mt-2 text-[11px] text-gray-600">' + r.perDoc.map((d) =>
+                    d.name + ": " + d.saved + "/" + r.total).join(" &middot; ") + "</div>";
+
+                return '<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">'
+                    + '<div class="flex items-start justify-between gap-2">'
+                    + '<div class="text-sm font-bold text-gray-800">' + teamEsc(g.label) + "</div>"
+                    + '<div class="text-[10px] font-bold uppercase tracking-wide text-gray-400">' + r.total + " voucher(s)</div>"
+                    + "</div>"
+                    + '<div class="mt-2 flex items-end gap-2">'
+                    + '<div class="text-3xl font-extrabold text-gray-900">' + savedForCard + '<span class="text-gray-400 text-xl">/' + r.total + "</span></div>"
+                    + '<div class="text-xs font-semibold ' + (missingForCard ? "text-rose-600" : "text-emerald-600") + ' mb-1">' +
+                      (missingForCard ? missingForCard + " missing" : "all saved") + "</div>"
+                    + "</div>"
+                    + '<div class="mt-2 h-2 rounded-full bg-gray-100 overflow-hidden"><div class="h-full ' + barCls + '" style="width:' + pct + '%"></div></div>'
+                    + extra
+                    + '<div class="mt-2 text-[11px] text-gray-500">Value: <b class="font-mono">' + money(r.amount) + "</b></div>"
+                    + "</div>";
+            }).join("");
+
+            results.forEach((r) => {
+                r.vouchers.forEach((v) => {
+                    const missingDocs = r.group.docs.filter((d) => !branchDocHas(v, d));
+                    if (!missingDocs.length) return;
+                    missingRows.push({
+                        type: r.group.label,
+                        date: String(v.date || "—"),
+                        ref: String(v.ourRef || v.customerRef || v.edRef || "—"),
+                        party: String(v.partyName || v.customerName || "—"),
+                        missing: missingDocs.map((d) => d.name).join(" + ")
+                    });
+                });
+            });
+
+            missingRows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+            if (summary) {
+                const totalVouchers = results.reduce((n, r) => n + r.total, 0);
+                summary.innerHTML = '<div class="flex flex-wrap items-center gap-x-6 gap-y-1">'
+                    + '<span class="font-semibold text-gray-900">' + periodName + "</span>"
+                    + '<span>Vouchers: <b>' + totalVouchers + "</b></span>"
+                    + '<span>Documents required: <b>' + docsRequired + "</b></span>"
+                    + '<span class="text-emerald-700">Saved: <b>' + docsSaved + "</b></span>"
+                    + '<span class="text-rose-600">Remaining: <b>' + Math.max(0, docsRequired - docsSaved) + "</b></span>"
+                    + "</div>";
+            }
+
+            if (missingBody && missingWrap) {
+                if (!missingRows.length) {
+                    missingWrap.classList.add("hidden");
+                    missingBody.innerHTML = "";
+                    if (missingCount) missingCount.textContent = "";
+                } else {
+                    missingWrap.classList.remove("hidden");
+                    if (missingCount) missingCount.textContent = missingRows.length + " voucher(s)";
+                    const shown = missingRows.slice(0, 300);
+                    missingBody.innerHTML = shown.map((row) => '<tr class="border-t border-gray-100 hover:bg-slate-50">'
+                        + '<td class="px-4 py-2 font-semibold text-gray-800">' + teamEsc(row.type) + "</td>"
+                        + '<td class="px-4 py-2 font-mono text-xs text-gray-600">' + teamEsc(row.date) + "</td>"
+                        + '<td class="px-4 py-2 font-mono text-xs text-gray-700">' + teamEsc(row.ref) + "</td>"
+                        + '<td class="px-4 py-2 text-gray-700">' + teamEsc(row.party) + "</td>"
+                        + '<td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">' + teamEsc(row.missing) + "</span></td>"
+                        + "</tr>").join("")
+                        + (missingRows.length > shown.length
+                            ? '<tr><td colspan="5" class="px-4 py-3 text-center text-xs text-gray-500">Showing the first ' + shown.length + " of " + missingRows.length + " rows.</td></tr>"
+                            : "");
+                }
+            }
+        }
 
         // ══════════════════════════════════════════════════════════════
         // Team Users — add / view / edit / remove
