@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORPOVAT ELITE V1.19</title>
+    <title>CORPOVAT ELITE V1.20</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -361,7 +361,7 @@
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">CORPOVAT ELITE</h1>
-                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.19</div>
+                <div data-app-version="long" class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Version 1.20</div>
             </div>
             <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
@@ -413,6 +413,20 @@
         </div>
     </div>
 
+    <!-- Document preview (open first, download only when needed) -->
+    <div id="doc-preview-overlay" class="hidden fixed inset-0 z-[200] bg-slate-900/80 items-center justify-center p-3 md:p-6" onclick="if (event.target === this) closeDocumentPreview()">
+        <div class="w-full max-w-5xl h-[92vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white shrink-0">
+                <i class="fas fa-file-alt text-slate-300"></i>
+                <div id="doc-preview-name" class="flex-1 min-w-0 truncate text-sm font-semibold">Document</div>
+                <button type="button" onclick="downloadPreviewedDocument()" title="Download this file" class="text-xs font-bold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-md"><i class="fas fa-download mr-1"></i>Download</button>
+                <a id="doc-preview-open" href="#" target="_blank" rel="noopener" title="Open in a new tab" class="text-xs font-bold bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-md"><i class="fas fa-up-right-from-square"></i></a>
+                <button type="button" onclick="closeDocumentPreview()" title="Close preview" class="text-xs font-bold bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-md"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="doc-preview-body" class="flex-1 bg-slate-100 overflow-auto flex items-center justify-center"></div>
+        </div>
+    </div>
+
     <!-- Main App Container (hidden by default) -->
     <div id="main-app" class="hidden h-screen bg-gray-200">
         <!-- Sidebar Overlay for mobile -->
@@ -430,7 +444,7 @@
                             <i class="fas fa-building"></i>
                         </div>
                         <div class="min-w-0">
-                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.19</span></h2>
+                            <h2 class="text-lg font-bold leading-tight truncate">CORPOVAT ELITE<span data-app-version class="ml-1 align-middle text-[10px] font-semibold text-emerald-300/90">V1.20</span></h2>
                             <div class="mt-1 inline-flex items-center gap-1 max-w-full text-[11px] font-medium text-emerald-200/90 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                                 <i class="fas fa-code-branch text-[9px]"></i>
                                 <span id="current-branch-display" class="truncate">...</span>
@@ -4152,7 +4166,7 @@
                         <option value="save_file">2. Save / Upload ${field.label}</option>
                     </select>
                     <div id="${prefix}-${field.name}-existing" class="existing-file hidden items-center gap-2 text-xs">
-                        <a id="${prefix}-${field.name}-existing-link" href="#" target="_blank" rel="noopener" class="text-indigo-600 hover:underline truncate">Attached file</a>
+                        <button type="button" id="${prefix}-${field.name}-existing-link" data-url="" data-name="" onclick="previewDocument(this.dataset.url, this.dataset.name)" class="text-indigo-600 hover:underline truncate text-left">Attached file</button>
                         <button type="button" id="${prefix}-${field.name}-existing-copy" data-url="" onclick="copyDocLink(this)" class="shrink-0 font-bold text-indigo-600 hover:text-indigo-800"><i class="fas fa-copy mr-1"></i>Copy link</button>
                         <button type="button" id="${prefix}-${field.name}-remove" onclick="removeAttachedFile('${prefix}-${field.name}')" class="shrink-0 font-bold text-rose-600 hover:text-rose-700"><i class="fas fa-trash-can mr-1"></i>Remove</button>
                     </div>
@@ -4252,6 +4266,113 @@
             return { nameFromUrl: nameFromUrl, removeReplaced: removeReplaced };
         })();
 
+        // ── Document preview (review first, download separately) ──────────
+        const DOC_IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|avif|tiff?)$/i;
+        const DOC_VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)$/i;
+        const DOC_AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac)$/i;
+        const docPreviewState = { url: '', name: '', kind: '' };
+
+        const isGdriveFileUrl = (url) => /\/api\/v1\/gdrive\/file\//i.test(String(url || ''));
+
+        const docPreviewUrl = (url) => {
+            if (!url || !isGdriveFileUrl(url)) return url;
+            if (/[?&]inline=1(&|$)/.test(url)) return url;
+            return url + (url.includes('?') ? '&' : '?') + 'inline=1';
+        };
+
+        const docDownloadUrl = (url, name) => {
+            if (!url) return url;
+            if (/firebasestorage\.googleapis\.com/i.test(url)) {
+                if (/[?&]download=/.test(url)) return url;
+                return url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(name || 'document');
+            }
+            return url; // Drive links download by default
+        };
+
+        const docKind = (url, name) => {
+            const path = String(name || url || '').split('?')[0].split('#')[0];
+            if (/\.pdf$/i.test(path)) return 'pdf';
+            if (DOC_IMAGE_EXT.test(path)) return 'image';
+            if (DOC_VIDEO_EXT.test(path)) return 'video';
+            if (DOC_AUDIO_EXT.test(path)) return 'audio';
+            if (/pdf/i.test(String(url || ''))) return 'pdf';
+            return 'file';
+        };
+
+        window.previewDocument = (url, name) => {
+            if (!url) { customAlert('There is no file to preview.', 'Preview'); return; }
+            const overlay = document.getElementById('doc-preview-overlay');
+            const body = document.getElementById('doc-preview-body');
+            const nameEl = document.getElementById('doc-preview-name');
+            const openEl = document.getElementById('doc-preview-open');
+            if (!overlay || !body) return;
+            const label = (name && String(name).trim()) ? String(name).trim() : 'Document';
+            const kind = docKind(url, name);
+            docPreviewState.url = url;
+            docPreviewState.name = label;
+            docPreviewState.kind = kind;
+            if (nameEl) { nameEl.textContent = label; nameEl.title = label; }
+            if (openEl) openEl.href = docPreviewUrl(url);
+            body.innerHTML = '';
+            if (kind === 'image') {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = label;
+                img.className = 'max-w-full max-h-full object-contain bg-white';
+                body.appendChild(img);
+            } else if (kind === 'pdf') {
+                const frame = document.createElement('iframe');
+                frame.src = docPreviewUrl(url);
+                frame.title = label;
+                frame.className = 'w-full h-full border-0 bg-white';
+                body.appendChild(frame);
+            } else if (kind === 'video') {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.className = 'max-w-full max-h-full';
+                body.appendChild(video);
+            } else if (kind === 'audio') {
+                const audio = document.createElement('audio');
+                audio.src = url;
+                audio.controls = true;
+                body.appendChild(audio);
+            } else {
+                const note = document.createElement('div');
+                note.className = 'text-center text-sm text-slate-600 p-8 leading-relaxed';
+                note.innerHTML = '<i class="fas fa-file-circle-question text-3xl mb-3 block text-slate-400"></i>Preview is not available for this file type.<br>Use the <b>Download</b> button above to open it.';
+                body.appendChild(note);
+            }
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        };
+
+        window.closeDocumentPreview = () => {
+            const overlay = document.getElementById('doc-preview-overlay');
+            const body = document.getElementById('doc-preview-body');
+            if (body) body.innerHTML = ''; // stop the PDF/iframe from loading
+            if (overlay) { overlay.classList.add('hidden'); overlay.classList.remove('flex'); }
+            docPreviewState.url = '';
+        };
+
+        window.downloadPreviewedDocument = () => {
+            if (!docPreviewState.url) return;
+            const link = document.createElement('a');
+            link.href = docDownloadUrl(docPreviewState.url, docPreviewState.name);
+            link.download = docPreviewState.name || 'document';
+            link.target = '_blank';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        };
+
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key !== 'Escape') return;
+            const overlay = document.getElementById('doc-preview-overlay');
+            if (overlay && !overlay.classList.contains('hidden')) window.closeDocumentPreview();
+        });
+
         window.setVoucherFileNote = (idPrefix, url, name) => {
             const wrap = document.getElementById(`${idPrefix}-existing`);
             const link = document.getElementById(`${idPrefix}-existing-link`);
@@ -4259,7 +4380,8 @@
             const removeBtn = document.getElementById(`${idPrefix}-remove`);
             if (!wrap || !link) return;
             if (url) {
-                link.href = url;
+                link.dataset.url = url;
+                link.dataset.name = name || "Attached file";
                 link.textContent = name || "Attached file";
                 link.title = name ? name : url;
                 if (copyBtn) copyBtn.dataset.url = url;
@@ -4269,7 +4391,8 @@
             } else {
                 wrap.classList.add("hidden");
                 wrap.classList.remove("flex");
-                link.removeAttribute("href");
+                link.dataset.url = "";
+                link.dataset.name = "";
                 link.removeAttribute("title");
                 link.textContent = "Attached file";
                 if (copyBtn) copyBtn.dataset.url = "";
@@ -4346,9 +4469,17 @@
                 nameSpan.textContent = label || 'No file';
                 nameSpan.title = label || '';
                 pickBtn.textContent = label ? 'Change' : 'Attach';
+                const canPreview = !!fileInput.dataset.existingUrl;
+                nameSpan.style.cursor = canPreview ? 'pointer' : '';
+                nameSpan.style.textDecoration = canPreview ? 'underline' : '';
             };
             pickBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', paintFile);
+            nameSpan.addEventListener('click', () => {
+                if (fileInput.dataset.existingUrl) {
+                    window.previewDocument(fileInput.dataset.existingUrl, fileInput.dataset.existingName || 'Invoice');
+                }
+            });
             paintFile();
             fileWrap.appendChild(fileInput);
             fileWrap.appendChild(pickBtn);
@@ -6331,7 +6462,7 @@
                     let cells = '';
                     let fileLinks = '';
                     const createLinkOrStatus = (url, status, text) => {
-                        if (url) return `<span class="inline-flex items-center gap-1"><a href="${url}" target="_blank" class="text-indigo-600 hover:underline">${text}</a><button type="button" data-url="${url}" onclick="copyDocLink(this)" title="Copy ${text} link" class="text-gray-400 hover:text-indigo-600"><i class="fas fa-copy text-[10px]"></i></button></span>`;
+                        if (url) return `<span class="inline-flex items-center gap-1"><button type="button" data-doc-url="${url}" data-doc-name="${text}" onclick="previewDocument(this.dataset.docUrl, this.dataset.docName)" class="text-indigo-600 hover:underline">${text}</button><button type="button" data-url="${url}" onclick="copyDocLink(this)" title="Copy ${text} link" class="text-gray-400 hover:text-indigo-600"><i class="fas fa-copy text-[10px]"></i></button></span>`;
                         if (status === 'missing') return `<span class="text-red-500">${text} Missing</span>`;
                         if (status === 'in_folder') return `<span class="text-green-600">${text} In Folder</span>`;
                         return `<span class="text-gray-400">N/A</span>`;
@@ -10544,7 +10675,7 @@
         // ── Release version ──────────────────────────────────────────────────────
 // Bump APP_VERSION for every release (1.2 → 1.3 → …). It drives the shown
 // version, the corporate iframe URL (cache-busting) and future PWA updates.
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 const CORP_BUILD_VERSION = APP_VERSION;
         let _corpPrevActiveLink = null;
         window.openCorporateSection = () => {
